@@ -120,6 +120,12 @@ struct MenuContent: View {
                 Text(app.engine.label).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
 
+            AccessibilityStatusView(compact: true)
+                .font(.callout)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(0.5)))
+
             VStack(alignment: .leading, spacing: 4) {
                 Text("Tone").font(.caption).foregroundStyle(.secondary)
                 Picker("Tone", selection: $app.tone) {
@@ -130,8 +136,6 @@ struct MenuContent: View {
             }
 
             Toggle("Pause Aure", isOn: $app.paused).toggleStyle(.switch).controlSize(.small)
-
-            AccessibilityStatusView(compact: true).font(.callout)
 
             if !app.installedModels.isEmpty {
                 Picker("Model", selection: Binding(get: { app.selectedModelID ?? "" },

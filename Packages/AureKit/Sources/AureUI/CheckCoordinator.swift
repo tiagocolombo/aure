@@ -17,6 +17,7 @@ public final class CheckCoordinator {
     }
 
     public private(set) var status: Status = .hidden
+    public private(set) var activity: TrackerActivity = .noPermission
     public private(set) var field: FocusedField?
     public private(set) var result: CheckResult?
     /// UTF-16 offset of the checked slice inside the field text.
@@ -33,6 +34,7 @@ public final class CheckCoordinator {
     public init(app: AppState) {
         self.app = app
         tracker.onChange = { [weak self] f in self?.fieldChanged(f) }
+        tracker.onActivity = { [weak self] a in self?.activity = a }
     }
 
     public func start() {
@@ -58,6 +60,36 @@ public final class CheckCoordinator {
         tracker.stop()
         tracker.start()
     }
+
+    /// One line for the menu bar: what Aure is doing right now.
+    public var summary: (text: String, detail: String, symbol: String, color: SummaryColor) {
+        guard let app else { return ("", "", "circle", .gray) }
+        if app.paused { return ("Paused", "Turn off Pause to check your writing again.", "pause.circle.fill", .gray) }
+        if !app.engine.isReady { return ("Model not ready", app.engine.label, "hourglass", .gray) }
+        switch activity {
+        case .noPermission:
+            return ("Not allowed to read other apps", "Grant Accessibility below so Aure can check what you type.", "hand.raised.fill", .orange)
+        case .blocked(let name):
+            return ("Not checking \(name)", "Aure never reads terminals, code editors or password managers.", "eye.slash", .gray)
+        case .noTextField(let name):
+            return ("Waiting in \(name)", "Click into a message or email box and start typing.", "text.cursor", .gray)
+        case .field(let name):
+            switch status {
+            case .hidden:
+                return ("Watching \(name)", "Type at least a few words; the bubble appears in the corner of the box.", "eye", .gray)
+            case .checking:
+                return ("Checking your text in \(name)…", "", "ellipsis.circle", .gray)
+            case .clean:
+                return ("No issues in \(name)", "The green bubble in the text box means it looks good.", "checkmark.circle.fill", .green)
+            case .issues(let n):
+                return ("\(n) suggestion\(n == 1 ? "" : "s") in \(name)", "Click the red bubble in the text box to review and replace.", "exclamationmark.circle.fill", .red)
+            case .error(let e):
+                return ("Couldn't check \(name)", e, "exclamationmark.triangle.fill", .orange)
+            }
+        }
+    }
+
+    public enum SummaryColor { case gray, green, red, orange }
 
     public var visibleIssues: [Issue] {
         (result?.issues ?? []).filter { !dismissed.contains(Self.key($0)) }

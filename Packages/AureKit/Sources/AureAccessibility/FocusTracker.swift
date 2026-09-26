@@ -43,11 +43,24 @@ public enum AppRules {
     ]
 }
 
+/// What Aure currently sees in the frontmost app (for the menu bar status).
+public enum TrackerActivity: Equatable, Sendable {
+    case noPermission
+    case blocked(app: String)
+    case noTextField(app: String)
+    case field(app: String)
+}
+
 /// Tracks the focused editable text field system-wide via AXObserver.
 @MainActor
 public final class FocusTracker {
     public var onChange: ((FocusedField?) -> Void)?
+    public var onActivity: ((TrackerActivity) -> Void)?
     public private(set) var current: FocusedField?
+    public private(set) var activity: TrackerActivity = .noPermission {
+        didSet { if activity != oldValue { onActivity?(activity) } }
+    }
+    static let ownBundleId = "com.tiagocolombo.aure"
 
     private var observer: AXObserver?
     private var observedPid: pid_t?
@@ -78,9 +91,16 @@ public final class FocusTracker {
     }
 
     private func attach(to app: NSRunningApplication?) {
+        // Opening Aure's own menu or windows must not reset what we track.
+        if app?.bundleIdentifier == Self.ownBundleId { return }
         detach()
-        guard AccessibilityPermission.isTrusted, let app, let bundleId = app.bundleIdentifier,
-              !AppRules.blocked.contains(bundleId) else {
+        guard AccessibilityPermission.isTrusted else {
+            activity = .noPermission
+            publish(nil)
+            return
+        }
+        guard let app, let bundleId = app.bundleIdentifier, !AppRules.blocked.contains(bundleId) else {
+            activity = .blocked(app: app?.localizedName ?? "this app")
             publish(nil)
             return
         }
@@ -123,16 +143,25 @@ public final class FocusTracker {
 
     /// Re-reads the focused element.
     public func refresh() {
-        guard AccessibilityPermission.isTrusted,
-              let app = NSWorkspace.shared.frontmostApplication,
-              let bundleId = app.bundleIdentifier, !AppRules.blocked.contains(bundleId) else {
+        guard AccessibilityPermission.isTrusted else {
+            activity = .noPermission
+            publish(nil)
+            return
+        }
+        guard let app = NSWorkspace.shared.frontmostApplication else { return }
+        if app.bundleIdentifier == Self.ownBundleId { return }
+        let name = app.localizedName ?? "this app"
+        guard let bundleId = app.bundleIdentifier, !AppRules.blocked.contains(bundleId) else {
+            activity = .blocked(app: name)
             publish(nil)
             return
         }
         if observedPid != app.processIdentifier { attach(to: app); return }
         let appEl = AXElement.application(pid: app.processIdentifier)
-        guard let el = appEl.element(kAXFocusedUIElementAttribute) else { publish(nil); return }
-        publish(Self.read(el, pid: app.processIdentifier, bundleId: bundleId, appName: app.localizedName))
+        let field = appEl.element(kAXFocusedUIElementAttribute)
+            .flatMap { Self.read($0, pid: app.processIdentifier, bundleId: bundleId, appName: name) }
+        activity = field == nil ? .noTextField(app: name) : .field(app: name)
+        publish(field)
     }
 
     private func publish(_ f: FocusedField?) {
