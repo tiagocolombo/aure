@@ -21,8 +21,34 @@ final class FloatingPanel: NSPanel {
         isMovableByWindowBackground = false
     }
 
-    override var canBecomeKey: Bool { true }
+    // Never take keyboard focus: the app you type in must stay key so the
+    // replacement (AX or ⌘V) lands in its text field.
+    override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
+}
+
+/// Hosting view that accepts the very first click even though its panel is
+/// not key and Aure is not the active app (otherwise the click only focuses
+/// the panel and is swallowed).
+final class FirstClickHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
+/// The bubble's view: handles the click in AppKit directly, which is reliable
+/// in a non-activating panel over Chrome/Slack.
+final class BubbleHostView<Content: View>: NSHostingView<Content> {
+    var onClick: (() -> Void)?
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        frame.contains(point) ? self : nil
+    }
+    override func mouseDown(with event: NSEvent) {
+        Log.info("bubble: mouseDown")
+        onClick?()
+    }
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
 }
 
 /// Owns the bubble and the suggestion card, and positions them next to the
@@ -35,26 +61,38 @@ final class BubbleController {
     private let card = FloatingPanel(size: NSSize(width: 380, height: 300))
     private var cardVisible = false
     private var keyMonitor: Any?
+    private var clickMonitor: Any?
+
+    static let cardWidth: CGFloat = 380
 
     init(coordinator: CheckCoordinator, app: AppState) {
         self.coordinator = coordinator
         self.app = app
-        bubble.contentView = NSHostingView(rootView: BubbleView(onTap: { [weak self] in self?.toggleCard() })
-            .environment(coordinator))
-        let host = NSHostingView(rootView: SuggestionCard(close: { [weak self] in self?.hideCard() })
-            .environment(coordinator).environment(app))
-        host.sizingOptions = [.preferredContentSize]
+        let bubbleHost = BubbleHostView(rootView: AnyView(BubbleView().environment(coordinator)))
+        bubbleHost.onClick = { [weak self] in self?.toggleCard() }
+        bubble.contentView = bubbleHost
+        let host = FirstClickHostingView(rootView: AnyView(SuggestionCard(close: { [weak self] in self?.hideCard() })
+            .environment(coordinator).environment(app)))
         card.contentView = host
         coordinator.onUpdate = { [weak self] in self?.update() }
         keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] e in
             if e.keyCode == 53 { MainActor.assumeIsolated { self?.hideCard() } } // Esc
         }
+        // Clicking anywhere else (outside the bubble and card) closes the card.
+        clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.cardVisible else { return }
+                let p = NSEvent.mouseLocation
+                if !self.card.frame.contains(p), !self.bubble.frame.contains(p) { self.hideCard() }
+            }
+        }
     }
 
     func update() {
         guard coordinator.status != .hidden, let f = coordinator.field, let anchor = anchorRect(f) else {
-            bubble.orderOut(nil)
-            hideCard()
+            // While the card is open, keep it (and the bubble) where they are;
+            // clicking the card can briefly blur the field in web apps.
+            if !cardVisible { bubble.orderOut(nil) }
             return
         }
         // Bottom-right inside the field (like Grammarly), clamped to screen.
@@ -64,13 +102,9 @@ final class BubbleController {
             origin.x = min(max(origin.x, screen.visibleFrame.minX), screen.visibleFrame.maxX - size.width)
             origin.y = min(max(origin.y, screen.visibleFrame.minY), screen.visibleFrame.maxY - size.height)
         }
-        bubble.setFrameOrigin(origin)
-        bubble.orderFrontRegardless()
+        if bubble.frame.origin != origin { bubble.setFrameOrigin(origin) }
+        if !bubble.isVisible { bubble.orderFrontRegardless() }
         if cardVisible { positionCard() }
-        if coordinator.status == .clean || coordinator.status == .hidden, cardVisible, coordinator.visibleIssues.isEmpty,
-           coordinator.result == nil {
-            hideCard()
-        }
     }
 
     /// Field frame; for huge web areas use the caret line instead.
@@ -89,17 +123,25 @@ final class BubbleController {
         cardVisible = true
         positionCard()
         card.orderFrontRegardless()
+        Log.info("card: shown at \(card.frame) status=\(coordinator.status)")
     }
 
     func hideCard() {
+        guard cardVisible else { return }
         cardVisible = false
         card.orderOut(nil)
+        Log.info("card: hidden")
     }
 
     private func positionCard() {
         let b = bubble.frame
-        card.contentView?.layoutSubtreeIfNeeded()
-        let size = card.contentView?.fittingSize ?? card.frame.size
+        guard let host = card.contentView else { return }
+        // Measure the SwiftUI content at the fixed width.
+        host.frame.size.width = Self.cardWidth
+        host.layoutSubtreeIfNeeded()
+        var height = host.fittingSize.height
+        if height < 60 || height > 700 { height = 320 }
+        let size = NSSize(width: Self.cardWidth, height: height)
         var origin = NSPoint(x: b.maxX - size.width, y: b.maxY + 6)
         if let screen = NSScreen.screens.first(where: { $0.frame.intersects(b) }) ?? NSScreen.main {
             let vf = screen.visibleFrame
@@ -114,7 +156,6 @@ final class BubbleController {
 /// The small red/green circle.
 struct BubbleView: View {
     @Environment(CheckCoordinator.self) private var c
-    let onTap: () -> Void
     @State private var hover = false
 
     var body: some View {
@@ -128,7 +169,6 @@ struct BubbleView: View {
         .frame(width: 26, height: 26)
         .contentShape(Circle())
         .onHover { hover = $0 }
-        .onTapGesture(perform: onTap)
         .help(help)
     }
 
@@ -182,7 +222,7 @@ struct SuggestionCard: View {
                 Spacer()
                 Menu {
                     ForEach(Tone.allCases) { t in
-                        Button("Rewrite as \(t.displayName)") { Task { await c.rewrite(tone: t); close() } }
+                        Button("Rewrite as \(t.displayName)") { close(); Task { await c.rewrite(tone: t) } }
                     }
                 } label: { Image(systemName: "wand.and.stars") }
                     .menuStyle(.borderlessButton).fixedSize().help("Rewrite in a tone")
@@ -212,7 +252,7 @@ struct SuggestionCard: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 ForEach(c.visibleIssues) { issue in
                                     IssueRow(issue: issue,
-                                             onAccept: { Task { await c.apply(issue) } },
+                                             onAccept: { close(); Task { await c.apply(issue) } },
                                              onDismiss: { c.dismiss(issue) })
                                 }
                             }
@@ -225,7 +265,7 @@ struct SuggestionCard: View {
                                 NSPasteboard.general.clearContents()
                                 NSPasteboard.general.setString(corrected(r), forType: .string)
                             }
-                            Button("Replace all") { Task { await c.replaceAll(); close() } }
+                            Button("Replace all") { close(); Task { await c.replaceAll() } }
                                 .buttonStyle(.borderedProminent)
                                 .keyboardShortcut(.defaultAction)
                         }
