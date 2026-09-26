@@ -66,6 +66,9 @@ public actor CorrectionService {
             let answer = try ResponseParser.parse(raw)
             var corrected = try Validator.validate(original: request.text, answer: answer, mode: request.mode)
             corrected = Self.restoreDictionaryWords(original: request.text, corrected: corrected, dictionary: dictionary)
+            if request.mode == .correct {
+                corrected = IssueBuilder.filterNoise(original: request.text, corrected: corrected)
+            }
             var issues = IssueBuilder.issues(original: request.text, corrected: corrected, edits: answer.edits)
             if request.mode == .correct {
                 issues += await Self.spellingIssues(in: request.text, dialect: request.dialect,

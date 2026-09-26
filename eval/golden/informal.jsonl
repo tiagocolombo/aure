@@ -1,0 +1,10 @@
+{"text": "Their going to the store tomorow.", "tone": "informal", "expect": ["They're going to the store tomorrow."]}
+{"text": "hey, can you send me the file when your done?", "tone": "informal", "expect": ["hey, can you send me the file when you're done?"]}
+{"text": "i think we should of shipped it yesterday", "tone": "informal", "expect": ["i think we should have shipped it yesterday", "I think we should have shipped it yesterday", "I think we should have shipped it yesterday."]}
+{"text": "sounds good 👍 see you at 3", "tone": "informal", "expect": null}
+{"text": "lol that was a wild meeting", "tone": "informal", "expect": null}
+{"text": "thanks @maria, the deploy went fine", "tone": "informal", "expect": null}
+{"text": "cant make it today, lets do tomorrow", "tone": "informal", "expect": ["can't make it today, let's do tomorrow", "Can't make it today, let's do tomorrow.", "can't make it today, let's do tomorrow."]}
+{"text": "the build are broken again, looking into it", "tone": "informal", "expect": ["the build is broken again, looking into it"]}
+{"text": "did you recieve my message?", "tone": "informal", "expect": ["did you receive my message?", "Did you receive my message?"]}
+{"text": "ok, I'll check it after lunch", "tone": "informal", "expect": null}

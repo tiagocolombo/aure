@@ -153,6 +153,19 @@ public enum Validator {
 }
 
 public enum IssueBuilder {
+    /// Drops edits small models make that are almost never real corrections:
+    /// lowercasing a word (e.g. "I'll" → "i'll") and deleting only final
+    /// punctuation. Returns the corrected text with those hunks reverted.
+    public static func filterNoise(original: String, corrected: String) -> String {
+        let hunks = DiffEngine.hunks(from: original, to: corrected).filter { h in
+            let o = h.original, r = h.replacement
+            if !o.isEmpty, o.lowercased() == r.lowercased(), r == r.lowercased(), o != r { return false }
+            if r.isEmpty, !o.isEmpty, o.allSatisfy({ ".!?".contains($0) }) { return false }
+            return true
+        }
+        return DiffEngine.apply(hunks, to: original)
+    }
+
     /// Turns the (validated) corrected text into issues with local offsets,
     /// labelling each diff hunk with the model's category/reason when they match.
     public static func issues(original: String, corrected: String, edits: [ModelAnswer.Edit]) -> [Issue] {

@@ -1,0 +1,15 @@
+{"text": "Hi Anna, I wanted to let you know that the report are ready.", "tone": "formal", "expect": ["Hi Anna, I wanted to let you know that the report is ready."]}
+{"text": "Please find attached the documents you requested.", "tone": "formal", "expect": null}
+{"text": "I look forward to hear from you.", "tone": "formal", "expect": ["I look forward to hearing from you."]}
+{"text": "Me and my team has reviewed the proposal.", "tone": "formal", "expect": ["My team and I have reviewed the proposal.", "My team and I reviewed the proposal."]}
+{"text": "Thank you for your help with the proposal.", "tone": "formal", "expect": null}
+{"text": "Could you please confirm the meeting time for tomorrow?", "tone": "formal", "expect": null}
+{"text": "The results was better then expected.", "tone": "formal", "expect": ["The results were better than expected."]}
+{"text": "We have less issues this quarter.", "tone": "formal", "expect": ["We have fewer issues this quarter."]}
+{"text": "Its important that everyone attend the training.", "tone": "formal", "expect": ["It's important that everyone attend the training.", "It's important that everyone attends the training.", "It is important that everyone attend the training.", "It is important that everyone attends the training."]}
+{"text": "I will send you the invoice by Friday.", "tone": "formal", "expect": null}
+{"text": "The colour of the logo should match the centre panel.", "tone": "formal", "dialect": "en_CA", "expect": null}
+{"text": "We cancelled the cheque and travelled home.", "tone": "formal", "dialect": "en_CA", "expect": null}
+{"text": "Please send the updated file to john@example.com before noon.", "tone": "formal", "expect": null}
+{"text": "Dear Mr. Smith, I am writing to inform you that you're application has been approved.", "tone": "strictFormal", "expect": ["Dear Mr. Smith, I am writing to inform you that your application has been approved."]}
+{"text": "We are pleased to confirm your appointment.", "tone": "strictFormal", "expect": null}
