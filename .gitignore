@@ -1,6 +1,5 @@
 node_modules
 dist
-.next
 
 # dev — all local state lives here
 .dev/
@@ -11,3 +10,18 @@ result-*
 .env
 .env.*
 !.envrc
+
+# Swift / build output
+.build/
+.swiftpm/
+build/
+*.xcodeproj
+xcuserdata/
+DerivedData/
+
+# Local models / eval output
+*.gguf
+eval/out/
+
+.DS_Store
+vendor/

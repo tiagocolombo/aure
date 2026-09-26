@@ -1,44 +1,23 @@
 # Everything this project needs, in one file.
-#   flake.nix reads it (builtins.fromTOML) to build the shell and services
+#   flake.nix reads it (builtins.fromTOML) to build the shell
 #   the `dev` CLI reads it to know the verbs
+#
+# Aure is a native macOS app. Swift comes from the system (Xcode Command Line
+# Tools or Xcode 16+), not from Nix; Nix only provides the supporting tools.
 name = "aure"
 repo = "tiagocolombo/aure"
-description = ""
+description = "Aure: offline grammar and tone assistant for macOS"
 
 [toolchain]
 node = 22
-pnpm = 10     # match the version CI installs
+pnpm = 10     # Chrome extension (extension/chrome)
 # Anything else, named as it is in nixpkgs.
-packages = ["doppler", "gh"]
-
-[env]
-# Every command below is run as `doppler run -- <command>`.
-doppler = { project = "aure", config = "dev" }
-
-[services.postgres]
-version = 16
-database = "aure"
-# An application role WITHOUT bypassrls, so row-level security behaves
-# locally the way it does in production. Drop these two lines to connect
-# as the postgres superuser instead.
-role = "aure_app"
-password = "dev"
-
-# [services.redis]
-# [services.aws]
-# buckets = ["aure-storage"]
-# queues = []
-# kms_keys = []
-
-# Re-run on every `dev up`. Put migrations and seeds here.
-[up]
-steps = ["nx run prisma:migrate"]
-
-[processes]
-api = "nx serve api"
-web = "nx serve web"
+packages = ["gh", "cmake"]
 
 [commands]
-test = "nx run-many -t test"
-lint = "nx run-many -t lint"
-build = "nx run-many -t build"
+test = "scripts/test.sh"
+lint = "scripts/lint.sh"
+build = "scripts/build-app.sh"
+dmg = "scripts/make-dmg.sh"
+llama = "scripts/build-llama.sh"
+run = "scripts/run-app.sh"
