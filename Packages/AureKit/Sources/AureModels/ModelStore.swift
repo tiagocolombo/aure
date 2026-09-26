@@ -27,9 +27,21 @@ public struct ModelInfo: Codable, Identifiable, Hashable, Sendable {
 }
 
 public enum ModelCatalog {
+    /// SwiftPM's generated `Bundle.module` looks next to the .app bundle root
+    /// and crashes when the resource bundle is (correctly) in
+    /// Contents/Resources, so look there first.
+    static var resourceBundle: Bundle {
+        let name = "AureKit_AureModels.bundle"
+        for base in [Bundle.main.resourceURL, Bundle.main.bundleURL, Bundle.main.executableURL?.deletingLastPathComponent()] {
+            if let url = base?.appendingPathComponent(name), let b = Bundle(url: url) { return b }
+        }
+        return Bundle.module
+    }
+
     public static func load() -> [ModelInfo] {
-        guard let url = Bundle.module.url(forResource: "models", withExtension: "json", subdirectory: "Resources")
-            ?? Bundle.module.url(forResource: "models", withExtension: "json"),
+        let bundle = resourceBundle
+        guard let url = bundle.url(forResource: "models", withExtension: "json", subdirectory: "Resources")
+            ?? bundle.url(forResource: "models", withExtension: "json"),
             let data = try? Data(contentsOf: url),
             let models = try? JSONDecoder().decode([ModelInfo].self, from: data)
         else { return [] }

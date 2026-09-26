@@ -17,7 +17,15 @@ public struct GenParams: Sendable, Equatable {
 public protocol LLMProvider: Sendable {
     var id: String { get }
     /// `jsonSchema` is a JSON-serializable schema dictionary encoded as Data.
-    func complete(system: String, user: String, jsonSchema: Data?, params: GenParams) async throws -> String
+    /// `examples` are few-shot (user, assistant) turns sent before `user`.
+    func complete(system: String, examples: [Prompt.Turn], user: String, jsonSchema: Data?,
+                  params: GenParams) async throws -> String
+}
+
+extension LLMProvider {
+    public func complete(system: String, user: String, jsonSchema: Data?, params: GenParams) async throws -> String {
+        try await complete(system: system, examples: [], user: user, jsonSchema: jsonSchema, params: params)
+    }
 }
 
 /// Scripted provider for tests and previews.
@@ -39,7 +47,8 @@ public final class FakeLLMProvider: LLMProvider, @unchecked Sendable {
 
     public var callCount: Int { lock.withLock { calls.count } }
 
-    public func complete(system: String, user: String, jsonSchema: Data?, params: GenParams) async throws -> String {
+    public func complete(system: String, examples: [Prompt.Turn], user: String, jsonSchema: Data?,
+                         params: GenParams) async throws -> String {
         lock.withLock { calls.append((system, user)) }
         try Task.checkCancellation()
         return try await responder(system, user)

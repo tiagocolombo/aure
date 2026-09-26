@@ -60,7 +60,8 @@ public actor CorrectionService {
 
         let task = Task<CheckResult, Error> {
             let started = Date()
-            let raw = try await provider.complete(system: prompt.system, user: prompt.user, jsonSchema: schema,
+            let raw = try await provider.complete(system: prompt.system, examples: prompt.examples, user: prompt.user,
+                                                  jsonSchema: schema,
                                                   params: GenParams(temperature: prompt.temperature, maxTokens: prompt.maxTokens))
             try Task.checkCancellation()
             let answer = try ResponseParser.parse(raw)

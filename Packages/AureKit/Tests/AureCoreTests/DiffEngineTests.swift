@@ -62,6 +62,13 @@ import Testing
         #expect(DiffEngine.apply(DiffEngine.hunks(from: s, to: c), to: s) == c)
     }
 
+    @Test func replacementPlusInsertionIsOneHunk() {
+        let h = DiffEngine.hunks(from: "when your ready", to: "when you are ready")
+        #expect(h.count == 1)
+        #expect(h[0].original == "your ")
+        #expect(DiffEngine.apply(h, to: "when your ready") == "when you are ready")
+    }
+
     @Test func tokenizerKeepsContractions() {
         #expect(DiffEngine.tokenize("don't stop") == ["don't", " ", "stop"])
     }
