@@ -12,6 +12,12 @@ public enum DiffEngine {
         public var range: Range<Int>
         public var original: String
         public var replacement: String
+
+        public init(range: Range<Int>, original: String, replacement: String) {
+            self.range = range
+            self.original = original
+            self.replacement = replacement
+        }
     }
 
     public static func tokenize(_ text: String) -> [String] {
