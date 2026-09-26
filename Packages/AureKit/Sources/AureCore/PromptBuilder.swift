@@ -24,6 +24,10 @@ public struct ToneDefinition: Codable, Sendable, Equatable {
     public var tone: Tone
     public var description: String
 
+    public init(tone: Tone, description: String) {
+        self.tone = tone
+        self.description = description
+    }
     public static func `default`(_ tone: Tone) -> ToneDefinition {
         switch tone {
         case .informal:

@@ -108,6 +108,12 @@ import Testing
 }
 
 @Suite struct IssueBuilderTests {
+    @Test func filtersLowercasingAndDroppedPeriods() {
+        #expect(IssueBuilder.filterNoise(original: "ok, I'll check it.", corrected: "ok, i'll check it") == "ok, I'll check it.")
+        #expect(IssueBuilder.filterNoise(original: "Their going home.", corrected: "They're going home") == "They're going home.")
+        #expect(IssueBuilder.filterNoise(original: "i am here", corrected: "I am here") == "I am here")
+    }
+
     @Test func usesModelCategoryAndReason() {
         let issues = IssueBuilder.issues(
             original: "the report are ready tomorow",
