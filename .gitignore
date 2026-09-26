@@ -1,0 +1,13 @@
+node_modules
+dist
+.next
+
+# dev — all local state lives here
+.dev/
+.direnv/
+result
+result-*
+
+.env
+.env.*
+!.envrc

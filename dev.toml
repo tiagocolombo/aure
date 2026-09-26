@@ -1,0 +1,44 @@
+# Everything this project needs, in one file.
+#   flake.nix reads it (builtins.fromTOML) to build the shell and services
+#   the `dev` CLI reads it to know the verbs
+name = "aure"
+repo = "tiagocolombo/aure"
+description = ""
+
+[toolchain]
+node = 22
+pnpm = 10     # match the version CI installs
+# Anything else, named as it is in nixpkgs.
+packages = ["doppler", "gh"]
+
+[env]
+# Every command below is run as `doppler run -- <command>`.
+doppler = { project = "aure", config = "dev" }
+
+[services.postgres]
+version = 16
+database = "aure"
+# An application role WITHOUT bypassrls, so row-level security behaves
+# locally the way it does in production. Drop these two lines to connect
+# as the postgres superuser instead.
+role = "aure_app"
+password = "dev"
+
+# [services.redis]
+# [services.aws]
+# buckets = ["aure-storage"]
+# queues = []
+# kms_keys = []
+
+# Re-run on every `dev up`. Put migrations and seeds here.
+[up]
+steps = ["nx run prisma:migrate"]
+
+[processes]
+api = "nx serve api"
+web = "nx serve web"
+
+[commands]
+test = "nx run-many -t test"
+lint = "nx run-many -t lint"
+build = "nx run-many -t build"
