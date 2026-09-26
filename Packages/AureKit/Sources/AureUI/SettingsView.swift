@@ -32,9 +32,10 @@ struct GeneralSettings: View {
             Toggle("Launch Aure at login", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { _, v in app.launchAtLogin = v }
             LabeledContent("Aure Pad shortcut", value: "⌥⌘P (from the menu bar)")
-            Section {
-                Text("Checking in other apps (Slack, Chrome/Gmail) with the red/green bubble arrives in the next milestone. Until then, use Aure Pad.")
-                    .font(.callout).foregroundStyle(.secondary)
+            Section("Checking in other apps") {
+                AccessibilityStatusView()
+                Text("A small bubble appears in the corner of the field you are typing in: green when it looks good, red with the number of suggestions. Click it to review and replace. Password fields, terminals, code editors and password managers are never read.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

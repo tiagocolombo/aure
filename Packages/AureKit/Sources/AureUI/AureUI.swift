@@ -11,6 +11,19 @@ public enum AureMain {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var state: AppState?
+    var coordinator: CheckCoordinator?
+    var bubble: BubbleController?
+
+    /// Starts system-wide checking (bubble in other apps). Safe to call again.
+    @MainActor
+    func startIntegration(_ state: AppState) {
+        guard coordinator == nil else { return }
+        let c = CheckCoordinator(app: state)
+        coordinator = c
+        state.coordinator = c
+        bubble = BubbleController(coordinator: c, app: state)
+        c.start()
+    }
 
     func applicationWillTerminate(_ notification: Notification) {
         // Make sure llama-server does not outlive the app.
@@ -35,11 +48,8 @@ struct AureApplication: App {
         MenuBarExtra {
             MenuContent()
                 .environment(state)
-                .task {
-                    delegate.state = state
-                }
         } label: {
-            MenuBarIcon(state: state)
+            MenuBarIcon(state: state, delegate: delegate)
         }
         .menuBarExtraStyle(.window)
 
@@ -63,12 +73,15 @@ struct AureApplication: App {
 /// The icon in the top menu bar.
 struct MenuBarIcon: View {
     let state: AppState
+    let delegate: AppDelegate
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Image(systemName: symbol)
             .task {
                 // Start the engine at launch; show onboarding on first run.
+                delegate.state = state
+                delegate.startIntegration(state)
                 await state.startEngine()
             }
             .task {
@@ -84,7 +97,7 @@ struct MenuBarIcon: View {
         if state.paused { return "text.badge.xmark" }
         switch state.engine {
         case .ready:
-            if let r = state.lastResult, r.hasIssues { return "exclamationmark.bubble" }
+            if case .issues = state.coordinator?.status { return "exclamationmark.bubble" }
             return "text.badge.checkmark"
         case .loading: return "hourglass"
         case .noModel, .failed: return "text.badge.minus"
@@ -117,6 +130,8 @@ struct MenuContent: View {
             }
 
             Toggle("Pause Aure", isOn: $app.paused).toggleStyle(.switch).controlSize(.small)
+
+            AccessibilityStatusView(compact: true).font(.callout)
 
             if !app.installedModels.isEmpty {
                 Picker("Model", selection: Binding(get: { app.selectedModelID ?? "" },
