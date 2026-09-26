@@ -1,3 +1,4 @@
+import AureAccessibility
 import AureCore
 import AureInference
 import AureModels
@@ -57,6 +58,8 @@ public final class AppState {
     public let store: ModelStore
     public let correction = CorrectionService()
     public var lastResult: CheckResult?
+    public var coordinator: CheckCoordinator?
+    public var accessibilityTrusted = AccessibilityPermission.isTrusted
 
     @ObservationIgnored private let server: LlamaServerProcess?
     @ObservationIgnored private let defaults: UserDefaults

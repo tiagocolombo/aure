@@ -1,0 +1,97 @@
+# CI for Aure. Runs on macOS only: the app needs AppKit, Swift 6 and Apple
+# tools (lipo, codesign, hdiutil), and llama-server's arm64 slice uses Metal.
+# Nix isn't used here. flake.nix pulls a private repo over SSH, and the
+# scripts only need Xcode and cmake, which the runner image already has.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Lint and test
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+
+      - name: Toolchain versions
+        run: |
+          swift --version
+          cmake --version | head -1
+
+      # Only needed once the Chrome extension exists (lint.sh and test.sh skip it otherwise).
+      - uses: pnpm/action-setup@v4
+        if: hashFiles('extension/chrome/package.json') != ''
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        if: hashFiles('extension/chrome/package.json') != ''
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: extension/chrome/pnpm-lock.yaml
+
+      - name: Lint
+        run: scripts/lint.sh
+
+      - name: Test
+        run: scripts/test.sh
+
+  build:
+    name: Build app and DMG
+    runs-on: macos-15
+    needs: test
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+
+      # A universal llama-server build is slow, so reuse it until the pinned
+      # tag or the build script changes.
+      - name: Cache llama-server
+        id: llama-cache
+        uses: actions/cache@v4
+        with:
+          path: build/llama
+          key: llama-${{ runner.os }}-${{ hashFiles('scripts/llama.version', 'scripts/build-llama.sh') }}
+
+      - name: Build llama-server (universal)
+        if: steps.llama-cache.outputs.cache-hit != 'true'
+        run: scripts/build-llama.sh
+
+      - name: Build Aure.app (universal, release)
+        run: scripts/build-app.sh release
+
+      # The runner has no "Aure Local" identity, so the app is signed ad-hoc.
+      # That's fine for testing, but it isn't a signed, notarized release.
+      - name: Package DMG
+        env:
+          AURE_SKIP_BUILD: "1"
+        run: scripts/make-dmg.sh
+
+      - name: Show build logs on failure
+        if: failure()
+        run: tail -n 100 build/llama-*.log 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Aure-dmg
+          path: dist/*.dmg
+          if-no-files-found: error
+          retention-days: 14

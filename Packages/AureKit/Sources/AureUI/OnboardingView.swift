@@ -48,7 +48,8 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Label("Pick a small local model (0.5–2.5 GB)", systemImage: "cpu")
                 Label("Choose Informal, Formal or Strict formal", systemImage: "text.quote")
-                Label("Check text from the menu bar with Aure Pad", systemImage: "menubar.rectangle")
+                Label("A red/green bubble in Slack, Chrome and other apps", systemImage: "circle.fill")
+                Label("Aure Pad for anything else", systemImage: "menubar.rectangle")
             }
             .padding(.top, 8)
         }
@@ -77,6 +78,10 @@ struct OnboardingView: View {
                  ? "Aure lives in the menu bar at the top of your screen. Click its icon to switch tone, open Aure Pad or change settings."
                  : "\(app.engine.label). You can start using Aure Pad as soon as the model is ready.")
                 .multilineTextAlignment(.center).foregroundStyle(.secondary).frame(maxWidth: 440)
+            GroupBox {
+                AccessibilityStatusView().frame(maxWidth: .infinity, alignment: .leading).padding(4)
+            }
+            .frame(maxWidth: 460)
         }
     }
 

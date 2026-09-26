@@ -17,12 +17,13 @@ let package = Package(
         .target(name: "AureProfile", dependencies: ["AureCore"]),
         .target(name: "AureAccessibility", dependencies: ["AureCore"]),
         .target(name: "AureBridge", dependencies: ["AureCore"]),
-        .target(name: "AureUI", dependencies: ["AureCore", "AureInference", "AureModels", "AureProfile"]),
+        .target(name: "AureUI", dependencies: ["AureCore", "AureInference", "AureModels", "AureProfile", "AureAccessibility"]),
         .executableTarget(name: "AureApp", dependencies: ["AureUI"]),
         .executableTarget(name: "AureEval", dependencies: ["AureCore", "AureInference", "AureModels"]),
         .testTarget(name: "AureCoreTests", dependencies: ["AureCore"]),
         .testTarget(name: "AureInferenceTests", dependencies: ["AureInference", "AureCore"]),
         .testTarget(name: "AureModelsTests", dependencies: ["AureModels"]),
         .testTarget(name: "AureUITests", dependencies: ["AureUI"]),
+        .testTarget(name: "AureAccessibilityTests", dependencies: ["AureAccessibility"]),
     ]
 )
