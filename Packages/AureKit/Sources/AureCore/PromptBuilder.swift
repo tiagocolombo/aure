@@ -1,0 +1,195 @@
+import Foundation
+
+/// Style information that personalizes prompts. Filled from the voice profile
+/// and learning data (Phase 5); empty by default.
+public struct StyleContext: Sendable, Hashable {
+    public var profileSummary: String
+    public var neverFlag: [String]
+    public var preferences: [String]
+    public var dictionary: [String]
+
+    public init(profileSummary: String = "", neverFlag: [String] = [], preferences: [String] = [],
+                dictionary: [String] = []) {
+        self.profileSummary = profileSummary
+        self.neverFlag = neverFlag
+        self.preferences = preferences
+        self.dictionary = dictionary
+    }
+
+    public static let empty = StyleContext()
+}
+
+/// Editable definition of a tone (Settings → Voice & Tone).
+public struct ToneDefinition: Codable, Sendable, Equatable {
+    public var tone: Tone
+    public var description: String
+
+    public static func `default`(_ tone: Tone) -> ToneDefinition {
+        switch tone {
+        case .informal:
+            ToneDefinition(tone: tone, description: """
+            Casual and friendly, like a message to a teammate on Slack. Contractions are fine. \
+            Keep emoji, slang the writer chose, and short sentences. Only fix real mistakes; \
+            never make it sound stiff.
+            """)
+        case .formal:
+            ToneDefinition(tone: tone, description: """
+            Professional email register. Clear, complete sentences and polite wording. No slang. \
+            Contractions are acceptable when natural. Keep the writer's structure and greeting.
+            """)
+        case .strictFormal:
+            ToneDefinition(tone: tone, description: """
+            Strictly formal register for executives, legal or official correspondence. No \
+            contractions, no colloquialisms, no emoji, no exclamation marks. Precise vocabulary \
+            and complete salutations and sign-offs.
+            """)
+        }
+    }
+}
+
+public struct Prompt: Sendable, Equatable {
+    public var system: String
+    public var user: String
+    public var temperature: Double
+    public var maxTokens: Int
+}
+
+public enum PromptBuilder {
+    /// JSON schema the model output must follow (enforced by llama-server).
+    public static var responseSchema: [String: Any] {
+        [
+        "type": "object",
+        "properties": [
+            "corrected": ["type": "string"],
+            "edits": [
+                "type": "array",
+                "items": [
+                    "type": "object",
+                    "properties": [
+                        "from": ["type": "string"],
+                        "to": ["type": "string"],
+                        "category": ["type": "string", "enum": Issue.Category.allCases.map(\.rawValue)],
+                        "why": ["type": "string"],
+                    ],
+                    "required": ["from", "to", "category", "why"],
+                ],
+            ],
+        ],
+        "required": ["corrected", "edits"],
+        ]
+    }
+
+    public static func dialectNote(_ d: Dialect) -> String {
+        switch d {
+        case .enUS:
+            "Use American English spelling and punctuation (color, center, organize, analyze)."
+        case .enCA:
+            """
+            Use Canadian English spelling: British-style -our and -re endings (colour, favour, \
+            centre, theatre), doubled L (travelled, cancelled), "cheque", "defence", \
+            but American -ize/-yze endings (organize, realize, analyze). Never flag these \
+            Canadian spellings as errors.
+            """
+        }
+    }
+
+    public static func build(_ req: CheckRequest,
+                             toneDefinition: ToneDefinition? = nil,
+                             style: StyleContext = .empty,
+                             disableThinking: Bool = true) -> Prompt {
+        let tone = toneDefinition ?? .default(req.tone)
+        var s = "You are Aure, a precise English copy editor.\n"
+
+        switch req.mode {
+        case .correct:
+            s += """
+            Task: correct spelling, grammar, punctuation and clearly wrong word choice in the \
+            user's text. Make the MINIMUM number of changes. Do not rephrase sentences that are \
+            already correct. If the text has no errors, return it unchanged with an empty edits list.
+
+            """
+        case .rewrite:
+            s += """
+            Task: rewrite the user's text in the target tone while keeping its meaning, facts, \
+            names and intent. Fix all errors. Keep roughly the same length.
+
+            """
+        }
+
+        s += "Target tone — \(tone.tone.displayName): \(tone.description)\n"
+        s += dialectNote(req.dialect) + "\n"
+
+        s += """
+        Rules:
+        - Keep line breaks, lists, URLs, email addresses, @mentions, #channels, `code`, numbers and emoji exactly as written.
+        - Keep names and technical terms. Do not add greetings, sign-offs or new content.
+        - Answer in English only, as JSON: {"corrected": string, "edits": [{"from", "to", "category", "why"}]}.
+        - "category" is one of: spelling, grammar, punctuation, wordChoice, tone, clarity.
+        - "why" is a short reason (max 12 words).
+
+        """
+
+        if !style.profileSummary.isEmpty {
+            s += "Writer's voice (keep it): \(style.profileSummary)\n"
+        }
+        if !style.preferences.isEmpty {
+            s += "Writer's preferences:\n" + style.preferences.prefix(20).map { "- \($0)" }.joined(separator: "\n") + "\n"
+        }
+        if !style.neverFlag.isEmpty {
+            s += "Never change these: " + style.neverFlag.prefix(20).joined(separator: ", ") + "\n"
+        }
+        if !style.dictionary.isEmpty {
+            s += "Correctly spelled words (do not flag): " + style.dictionary.prefix(40).joined(separator: ", ") + "\n"
+        }
+
+        s += "\nExamples:\n" + fewShot(req.mode, req.tone)
+
+        var user = "Text:\n\(req.text)"
+        if disableThinking { user += "\n/no_think" }
+
+        let approxTokens = max(16, req.text.utf8.count / 3)
+        return Prompt(system: s,
+                      user: user,
+                      temperature: req.mode == .correct ? 0.2 : 0.6,
+                      maxTokens: min(2048, approxTokens * 3 + 160))
+    }
+
+    static func fewShot(_ mode: CheckMode, _ tone: Tone) -> String {
+        switch (mode, tone) {
+        case (.correct, .informal):
+            return """
+            Text: hey, their going to be late lol. can u tell the others?
+            {"corrected":"hey, they're going to be late lol. can u tell the others?","edits":[{"from":"their","to":"they're","category":"grammar","why":"'they're' means 'they are'"}]}
+            Text: sounds good 👍 see you at 3
+            {"corrected":"sounds good 👍 see you at 3","edits":[]}
+
+            """
+        case (.correct, _):
+            return """
+            Text: Hi Anna, I wanted to let you know that the report are ready and I will send it tomorow.
+            {"corrected":"Hi Anna, I wanted to let you know that the report is ready and I will send it tomorrow.","edits":[{"from":"are","to":"is","category":"grammar","why":"Subject 'report' is singular"},{"from":"tomorow","to":"tomorrow","category":"spelling","why":"Misspelled word"}]}
+            Text: Thank you for your help with the proposal.
+            {"corrected":"Thank you for your help with the proposal.","edits":[]}
+
+            """
+        case (.rewrite, .informal):
+            return """
+            Text: I would like to inform you that the meeting has been moved to Friday.
+            {"corrected":"Heads up, the meeting moved to Friday.","edits":[{"from":"I would like to inform you that the meeting has been moved","to":"Heads up, the meeting moved","category":"tone","why":"More casual phrasing"}]}
+
+            """
+        case (.rewrite, .formal):
+            return """
+            Text: hey can u send me the numbers asap, need them for the call
+            {"corrected":"Hi, could you please send me the numbers as soon as possible? I need them for the call.","edits":[{"from":"hey can u send me the numbers asap, need them","to":"Hi, could you please send me the numbers as soon as possible? I need them","category":"tone","why":"Professional wording"}]}
+
+            """
+        case (.rewrite, .strictFormal):
+            return """
+            Text: Hi Tom, thanks! We can't make it Monday, can we do Tuesday?
+            {"corrected":"Dear Tom, thank you. Unfortunately, we are unable to attend on Monday. Would Tuesday be convenient?","edits":[{"from":"Hi Tom, thanks! We can't make it Monday, can we do Tuesday?","to":"Dear Tom, thank you. Unfortunately, we are unable to attend on Monday. Would Tuesday be convenient?","category":"tone","why":"Strictly formal register"}]}
+
+            """
+        }
+    }
+}
