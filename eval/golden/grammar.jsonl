@@ -1,0 +1,15 @@
+{"text": "I seen him at the office yesterday.", "tone": "informal", "expect": ["I saw him at the office yesterday."]}
+{"text": "She don't like when people is late.", "tone": "formal", "expect": ["She doesn't like it when people are late.", "She doesn't like when people are late."]}
+{"text": "Between you and I, the plan wont work.", "tone": "formal", "expect": ["Between you and me, the plan won't work."]}
+{"text": "The team have finished there work early.", "tone": "formal", "expect": ["The team has finished their work early.", "The team have finished their work early."]}
+{"text": "Can you borrow me your charger?", "tone": "informal", "expect": ["Can you lend me your charger?"]}
+{"text": "This effects everyone on the project.", "tone": "formal", "expect": ["This affects everyone on the project."]}
+{"text": "Dont loose the keys again.", "tone": "informal", "expect": ["Don't lose the keys again."]}
+{"text": "Each of the reports have a summary.", "tone": "formal", "expect": ["Each of the reports has a summary."]}
+{"text": "Who's laptop is this?", "tone": "informal", "expect": ["Whose laptop is this?"]}
+{"text": "We was planning to call you later.", "tone": "informal", "expect": ["We were planning to call you later."]}
+{"text": "Let me know if you have any questions.", "tone": "formal", "expect": null}
+{"text": "I'm heading out, ping me if anything breaks.", "tone": "informal", "expect": null}
+{"text": "The data shows a clear upward trend.", "tone": "formal", "expect": null}
+{"text": "Whose turn is it to review the PR?", "tone": "informal", "expect": null}
+{"text": "Could you review https://github.com/acme/api/pull/42 before 5pm?", "tone": "formal", "expect": null}

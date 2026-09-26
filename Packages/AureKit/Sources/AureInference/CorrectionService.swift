@@ -55,22 +55,22 @@ public actor CorrectionService {
 
         guard let provider else { throw AureError.modelNotLoaded }
         let prompt = PromptBuilder.build(request, toneDefinition: toneDefinitions[request.tone], style: style)
-        let schema = try? JSONSerialization.data(withJSONObject: PromptBuilder.responseSchema)
         let dictionary = Set(style.dictionary.map { $0.lowercased() })
 
         let task = Task<CheckResult, Error> {
             let started = Date()
             let raw = try await provider.complete(system: prompt.system, examples: prompt.examples, user: prompt.user,
-                                                  jsonSchema: schema,
+                                                  jsonSchema: nil,
                                                   params: GenParams(temperature: prompt.temperature, maxTokens: prompt.maxTokens))
             try Task.checkCancellation()
-            let answer = try ResponseParser.parse(raw)
+            let answer = try ResponseParser.parse(raw, original: request.text)
             var corrected = try Validator.validate(original: request.text, answer: answer, mode: request.mode)
             corrected = Self.restoreDictionaryWords(original: request.text, corrected: corrected, dictionary: dictionary)
             if request.mode == .correct {
                 corrected = IssueBuilder.filterNoise(original: request.text, corrected: corrected)
             }
             var issues = IssueBuilder.issues(original: request.text, corrected: corrected, edits: answer.edits)
+            issues = await Self.relabel(issues, dialect: request.dialect)
             if request.mode == .correct {
                 issues += await Self.spellingIssues(in: request.text, dialect: request.dialect,
                                                     dictionary: dictionary, excluding: issues)
@@ -112,6 +112,25 @@ public actor CorrectionService {
             !dictionary.contains(h.original.trimmingCharacters(in: .whitespaces).lowercased())
         }
         return DiffEngine.apply(hunks, to: original)
+    }
+
+    /// A "spelling" guess on a word the system dictionary knows (e.g. "Your"
+    /// → "You're") is really a wrong word for the context.
+    @MainActor
+    static func relabel(_ issues: [Issue], dialect: Dialect) -> [Issue] {
+        let checker = NSSpellChecker.shared
+        return issues.map { issue in
+            guard issue.category == .spelling, issue.explanation == "Spelling" else { return issue }
+            let word = issue.original.trimmingCharacters(in: .whitespaces)
+            guard !word.isEmpty, !word.contains(" ") else { return issue }
+            let miss = checker.checkSpelling(of: word, startingAt: 0, language: dialect.spellCheckerLanguage,
+                                             wrap: false, inSpellDocumentWithTag: 0, wordCount: nil)
+            guard miss.location == NSNotFound else { return issue } // really misspelled
+            var i = issue
+            i.category = .wordChoice
+            i.explanation = "\"\(word)\" is a real word, but not the right one here"
+            return i
+        }
     }
 
     /// NSSpellChecker pass that catches misspellings the model missed.

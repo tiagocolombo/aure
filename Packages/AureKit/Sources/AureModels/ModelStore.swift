@@ -49,10 +49,10 @@ public enum ModelCatalog {
     }
 
     /// Default model for this machine.
+    /// Based on docs/MODEL_EVAL.md: accuracy first, as long as the Mac has room.
     public static func recommendedID(isAppleSilicon: Bool, memoryGB: Double) -> String {
-        if !isAppleSilicon { return "qwen3-0.6b" }
-        if memoryGB >= 16 { return "qwen3-1.7b" }
-        if memoryGB >= 8 { return "qwen3-1.7b" }
+        if memoryGB >= 12 { return "qwen3-4b" }
+        if memoryGB >= 6 { return "qwen3-1.7b" }
         return "qwen3-0.6b"
     }
 
@@ -61,11 +61,8 @@ public enum ModelCatalog {
         if memoryGB < m.minRAMGB {
             return (false, "Needs \(Int(m.minRAMGB)) GB of memory")
         }
-        if !isAppleSilicon && m.bytes > 1_500_000_000 {
+        if !isAppleSilicon && m.bytes > 2_800_000_000 {
             return (true, "Slow on Intel Macs")
-        }
-        if !isAppleSilicon && m.bytes > 700_000_000 {
-            return (true, "May be slow on Intel Macs")
         }
         return (true, nil)
     }

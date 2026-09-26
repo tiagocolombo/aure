@@ -66,30 +66,6 @@ public struct Prompt: Sendable, Equatable {
 }
 
 public enum PromptBuilder {
-    /// JSON schema the model output must follow (enforced by llama-server).
-    public static var responseSchema: [String: Any] {
-        [
-        "type": "object",
-        "properties": [
-            "corrected": ["type": "string"],
-            "edits": [
-                "type": "array",
-                "items": [
-                    "type": "object",
-                    "properties": [
-                        "from": ["type": "string"],
-                        "to": ["type": "string"],
-                        "category": ["type": "string", "enum": Issue.Category.allCases.map(\.rawValue)],
-                        "why": ["type": "string"],
-                    ],
-                    "required": ["from", "to", "category", "why"],
-                ],
-            ],
-        ],
-        "required": ["corrected", "edits"],
-        ]
-    }
-
     public static func dialectNote(_ d: Dialect) -> String {
         switch d {
         case .enUS:
@@ -114,9 +90,13 @@ public enum PromptBuilder {
         switch req.mode {
         case .correct:
             s += """
-            Task: correct spelling, grammar, punctuation and clearly wrong word choice in the \
-            user's text. Make the MINIMUM number of changes. Do not rephrase sentences that are \
-            already correct. If the text has no errors, return it unchanged with an empty edits list.
+            Task: proofread the user's text and fix every error: spelling, grammar, punctuation \
+            and wrong words. Read each word in context. Pay special attention to commonly confused \
+            words that spell checkers miss (for example your/you're, its/it's, their/there/they're, \
+            then/than, should of/should have, affect/effect, lose/loose), subject-verb agreement \
+            and missing apostrophes. Change only what is wrong and keep everything else exactly \
+            as written, including the writer's capitalization style. If the text has no errors, \
+            repeat it exactly.
 
             """
         case .rewrite:
@@ -134,9 +114,7 @@ public enum PromptBuilder {
         Rules:
         - Keep line breaks, lists, URLs, email addresses, @mentions, #channels, `code`, numbers and emoji exactly as written.
         - Keep names and technical terms. Do not add greetings, sign-offs or new content.
-        - Answer in English only, as JSON: {"corrected": string, "edits": [{"from", "to", "category", "why"}]}.
-        - "category" is one of: spelling, grammar, punctuation, wordChoice, tone, clarity.
-        - "why" is a short reason (max 12 words).
+        - Reply with the corrected text only: no quotes, labels, explanations or notes.
 
         """
 
@@ -155,19 +133,19 @@ public enum PromptBuilder {
 
         let suffix = disableThinking ? "\n/no_think" : ""
         let examples = fewShot(req.mode, req.tone).map {
-            Prompt.Turn(user: "Text:\n\($0.text)" + suffix, assistant: $0.json)
+            Prompt.Turn(user: $0.text + suffix, assistant: $0.corrected)
         }
-        let user = "Text:\n\(req.text)" + suffix
+        let user = req.text + suffix
 
         let approxTokens = max(16, req.text.utf8.count / 3)
         return Prompt(system: s,
                       examples: examples,
                       user: user,
                       temperature: req.mode == .correct ? 0.2 : 0.6,
-                      maxTokens: min(2048, approxTokens * 3 + 160))
+                      maxTokens: min(2048, approxTokens * 2 + 64))
     }
 
-    static func fewShot(_ mode: CheckMode, _ tone: Tone) -> [(text: String, json: String)] {
+    static func fewShot(_ mode: CheckMode, _ tone: Tone) -> [(text: String, corrected: String)] {
         let raw: String
         switch (mode, tone) {
         case (.correct, .informal):
@@ -176,6 +154,8 @@ public enum PromptBuilder {
             {"corrected":"hey, they're going to be late lol. can u tell the others?","edits":[{"from":"their","to":"they're","category":"grammar","why":"'they're' means 'they are'"}]}
             Text: sounds good 👍 see you at 3
             {"corrected":"sounds good 👍 see you at 3","edits":[]}
+            Text: your right, its too late to change it now
+            {"corrected":"you're right, it's too late to change it now","edits":[{"from":"your","to":"you're","category":"grammar","why":"'you're' means 'you are'"},{"from":"its","to":"it's","category":"grammar","why":"'it's' means 'it is'"}]}
             Text: we should of merged it, lets fix it when your back
             {"corrected":"we should have merged it, let's fix it when you're back","edits":[{"from":"should of","to":"should have","category":"grammar","why":"'should have', not 'should of'"},{"from":"lets","to":"let's","category":"punctuation","why":"Contraction of 'let us'"},{"from":"your","to":"you're","category":"grammar","why":"'you're' means 'you are'"}]}
             """
@@ -185,6 +165,8 @@ public enum PromptBuilder {
             {"corrected":"Hi Anna, I wanted to let you know that the report is ready and I will send it tomorrow.","edits":[{"from":"are","to":"is","category":"grammar","why":"Subject 'report' is singular"},{"from":"tomorow","to":"tomorrow","category":"spelling","why":"Misspelled word"}]}
             Text: Thank you for your help with the proposal.
             {"corrected":"Thank you for your help with the proposal.","edits":[]}
+            Text: Your welcome to join, but there coming at 9 and its a long meeting.
+            {"corrected":"You're welcome to join, but they're coming at 9 and it's a long meeting.","edits":[{"from":"Your","to":"You're","category":"grammar","why":"'You're' means 'you are'"},{"from":"there","to":"they're","category":"grammar","why":"'they're' means 'they are'"},{"from":"its","to":"it's","category":"grammar","why":"'it's' means 'it is'"}]}
             Text: We received less applications then last year.
             {"corrected":"We received fewer applications than last year.","edits":[{"from":"less","to":"fewer","category":"wordChoice","why":"Use 'fewer' with countable nouns"},{"from":"then","to":"than","category":"wordChoice","why":"'than' is used for comparisons"}]}
             """
@@ -204,13 +186,13 @@ public enum PromptBuilder {
             {"corrected":"Dear Tom, thank you. Unfortunately, we are unable to attend on Monday. Would Tuesday be convenient?","edits":[{"from":"Hi Tom, thanks! We can't make it Monday, can we do Tuesday?","to":"Dear Tom, thank you. Unfortunately, we are unable to attend on Monday. Would Tuesday be convenient?","category":"tone","why":"Strictly formal register"}]}
             """
         }
-        var out: [(text: String, json: String)] = []
+        var out: [(text: String, corrected: String)] = []
         var pending: String?
         for line in raw.split(separator: "\n").map({ $0.trimmingCharacters(in: .whitespaces) }) where !line.isEmpty {
             if line.hasPrefix("Text: ") {
                 pending = String(line.dropFirst(6))
-            } else if let t = pending {
-                out.append((t, line))
+            } else if let t = pending, let corrected = ((try? ResponseParser.parseJSON(line))?.corrected) {
+                out.append((t, corrected))
                 pending = nil
             }
         }
