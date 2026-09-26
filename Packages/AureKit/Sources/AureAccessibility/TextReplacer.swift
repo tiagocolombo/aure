@@ -18,18 +18,30 @@ public enum TextReplacer {
         let expected = (field.text as NSString).replacingCharacters(
             in: NSRange(location: range.lowerBound, length: range.count), with: replacement)
 
-        if select(el, range) {
+        if await select(el, range) {
             if el.set(kAXSelectedTextAttribute, replacement as CFString) {
                 try? await Task.sleep(for: .milliseconds(80))
-                if el.value == expected { return .accessibility }
+                if el.value == expected {
+                    Log.info("replace: accessibility ok (\(field.bundleId ?? "?"))")
+                    return .accessibility
+                }
             }
         }
 
-        // Fallback: select the range and paste.
-        guard select(el, range) || selectAllFallback(el, field: field, range: range) else { return nil }
-        try? await Task.sleep(for: .milliseconds(60))
-        await paste(replacement)
-        try? await Task.sleep(for: .milliseconds(120))
+        // Fallback: select the range and paste. Only paste if the selection is
+        // verified, or if we replace the whole field (⌘A selects it).
+        let selected = await select(el, range)
+        var textToPaste = replacement
+        if !selected {
+            // Cannot select just this range: select the whole field (⌘A) and
+            // paste the whole corrected text instead.
+            postKey(CGKeyCode(kVK_ANSI_A), flags: .maskCommand)
+            textToPaste = expected
+        }
+        try? await Task.sleep(for: .milliseconds(80))
+        await paste(textToPaste)
+        try? await Task.sleep(for: .milliseconds(150))
+        Log.info("replace: paste (\(selected ? "range" : "select-all")) in \(field.bundleId ?? "?")")
         return .paste
     }
 
@@ -39,17 +51,13 @@ public enum TextReplacer {
         await replace(in: field, range: 0..<(field.text as NSString).length, with: text)
     }
 
-    static func select(_ el: AXElement, _ range: Range<Int>) -> Bool {
+    /// Sets the selection and reads it back: Chrome and Electron sometimes
+    /// report success without moving the selection.
+    static func select(_ el: AXElement, _ range: Range<Int>) async -> Bool {
         var cf = CFRange(location: range.lowerBound, length: range.count)
-        guard let v = AXValueCreate(.cfRange, &cf) else { return false }
-        return el.set(kAXSelectedTextRangeAttribute, v)
-    }
-
-    static func selectAllFallback(_ el: AXElement, field: FocusedField, range: Range<Int>) -> Bool {
-        // Only valid for whole-text replacement.
-        guard range.lowerBound == 0, range.count == (field.text as NSString).length else { return false }
-        postKey(CGKeyCode(kVK_ANSI_A), flags: .maskCommand)
-        return true
+        guard let v = AXValueCreate(.cfRange, &cf), el.set(kAXSelectedTextRangeAttribute, v) else { return false }
+        try? await Task.sleep(for: .milliseconds(40))
+        return el.selectedRange == range
     }
 
     /// Puts `text` on the pasteboard, sends ⌘V, then restores the previous contents.
