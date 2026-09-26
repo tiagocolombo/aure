@@ -1,0 +1,10 @@
+{"text": "Your going to the school tomorrow.", "tone": "informal", "expect": ["You're going to the school tomorrow."]}
+{"text": "Your going to the school tomorrow.", "tone": "formal", "expect": ["You're going to the school tomorrow.", "You are going to the school tomorrow."]}
+{"text": "your welcome, happy to help", "tone": "informal", "expect": ["you're welcome, happy to help", "You're welcome, happy to help"]}
+{"text": "Its been a long week.", "tone": "informal", "expect": ["It's been a long week."]}
+{"text": "I think there going to love it.", "tone": "formal", "expect": ["I think they're going to love it."]}
+{"text": "Is this you're laptop?", "tone": "informal", "expect": ["Is this your laptop?"]}
+{"text": "The dog wagged it's tail.", "tone": "formal", "expect": ["The dog wagged its tail."]}
+{"text": "Your report is on my desk.", "tone": "formal", "expect": null}
+{"text": "They're coming at noon.", "tone": "informal", "expect": null}
+{"text": "Its colour is lovely.", "tone": "formal", "dialect": "en_CA", "expect": ["Its colour is lovely."]}

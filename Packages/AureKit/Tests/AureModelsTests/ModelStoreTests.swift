@@ -44,15 +44,15 @@ final class StubProtocol: URLProtocol, @unchecked Sendable {
 
     @Test func catalogHasFourModelsWithHashes() {
         let c = ModelCatalog.load()
-        #expect(c.map(\.id) == ["qwen3-0.6b", "smollm2-1.7b", "qwen3-1.7b", "qwen3-4b"])
+        #expect(c.map(\.id) == ["qwen3-4b", "qwen3-1.7b", "qwen3.5-4b", "qwen3-0.6b"])
         #expect(c.allSatisfy { $0.sha256.count == 64 && $0.bytes > 400_000_000 })
     }
 
     @Test func recommendation() {
-        #expect(ModelCatalog.recommendedID(isAppleSilicon: false, memoryGB: 16) == "qwen3-0.6b")
-        #expect(ModelCatalog.recommendedID(isAppleSilicon: true, memoryGB: 16) == "qwen3-1.7b")
+        #expect(ModelCatalog.recommendedID(isAppleSilicon: false, memoryGB: 16) == "qwen3-4b")
+        #expect(ModelCatalog.recommendedID(isAppleSilicon: true, memoryGB: 8) == "qwen3-1.7b")
         let big = ModelCatalog.load().first { $0.id == "qwen3-4b" }!
-        #expect(ModelCatalog.fit(big, isAppleSilicon: true, memoryGB: 8).ok == false)
+        #expect(ModelCatalog.fit(big, isAppleSilicon: true, memoryGB: 4).ok == false)
     }
 
     @Test func downloadVerifiesAndInstalls() async throws {

@@ -6,12 +6,12 @@ import Testing
     func promptMentionsToneAndMode(tone: Tone, mode: CheckMode) {
         let p = PromptBuilder.build(CheckRequest(text: "hello wrold", tone: tone, mode: mode))
         #expect(p.system.contains(tone.displayName))
-        #expect(p.system.contains(mode == .correct ? "MINIMUM" : "rewrite"))
-        #expect(p.user.hasPrefix("Text:\nhello wrold"))
+        #expect(p.system.contains(mode == .correct ? "proofread" : "rewrite"))
+        #expect(p.user.hasPrefix("hello wrold"))
         #expect(p.user.hasSuffix("/no_think"))
         #expect(p.temperature == (mode == .correct ? 0.2 : 0.6))
         #expect(!p.examples.isEmpty)
-        #expect(p.examples.allSatisfy { (try? ResponseParser.parse($0.assistant)) != nil })
+        #expect(p.examples.allSatisfy { !$0.assistant.hasPrefix("{") && !$0.assistant.isEmpty })
     }
 
     @Test func dialectNotes() {
@@ -39,25 +39,28 @@ import Testing
 }
 
 @Suite struct ResponseParserTests {
-    @Test func parsesPlainJSON() throws {
-        let a = try ResponseParser.parse(#"{"corrected":"Hi there.","edits":[]}"#)
-        #expect(a.corrected == "Hi there.")
+    @Test func plainTextAnswer() throws {
+        #expect(try ResponseParser.parse("You're going home.", original: "Your going home.").corrected == "You're going home.")
     }
 
-    @Test func parsesFencedJSONWithThinkBlock() throws {
-        let raw = "<think>\n\n</think>\n```json\n{\"corrected\":\"a {b} c\",\"edits\":[{\"from\":\"x\",\"to\":\"y\",\"category\":\"grammar\",\"why\":\"z\"}]}\n```\nDone."
-        let a = try ResponseParser.parse(raw)
+    @Test func stripsThinkFencesLabelsAndQuotes() throws {
+        #expect(try ResponseParser.parse("<think>\n\n</think>\n\nHi there.", original: "hi there").corrected == "Hi there.")
+        #expect(try ResponseParser.parse("```\nHi there.\n```", original: "hi there").corrected == "Hi there.")
+        #expect(try ResponseParser.parse("Corrected: Hi there.", original: "hi there").corrected == "Hi there.")
+        #expect(try ResponseParser.parse("\"Hi there.\"", original: "hi there").corrected == "Hi there.")
+        // Quotes the writer used are kept.
+        #expect(try ResponseParser.parse("\"Hi there.\"", original: "\"hi there\"").corrected == "\"Hi there.\"")
+    }
+
+    @Test func jsonAnswerStillAccepted() throws {
+        let a = try ResponseParser.parse(#"{"corrected":"a {b} c","edits":[{"from":"x","to":"y","category":"grammar","why":"z"}]}"#, original: "a")
         #expect(a.corrected == "a {b} c")
         #expect(a.edits.count == 1)
     }
 
-    @Test func acceptsMissingEdits() throws {
-        #expect(try ResponseParser.parse(#"{"corrected":"ok"}"#).edits.isEmpty)
-    }
-
-    @Test func rejectsGarbage() {
-        #expect(throws: AureError.self) { try ResponseParser.parse("Sure! Here is the text.") }
-        #expect(throws: AureError.self) { try ResponseParser.parse(#"{"corrected": "unterminated"#) }
+    @Test func rejectsEmptyAndBadJSON() {
+        #expect(throws: AureError.self) { try ResponseParser.parse("   ", original: "hello") }
+        #expect(throws: AureError.self) { try ResponseParser.parseJSON(#"{"corrected": "unterminated"#) }
     }
 }
 
@@ -137,6 +140,7 @@ import Testing
 
     @Test func keepsSentenceCapital() {
         #expect(IssueBuilder.filterNoise(original: "Their going home.", corrected: "they're going home.") == "They're going home.")
+        #expect(IssueBuilder.filterNoise(original: "Between you and I, ok.", corrected: "Between you and me, ok.") == "Between you and me, ok.")
     }
 
     @Test func doesNotReuseUnrelatedReasons() {

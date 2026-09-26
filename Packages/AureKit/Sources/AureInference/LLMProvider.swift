@@ -39,10 +39,12 @@ public final class FakeLLMProvider: LLMProvider, @unchecked Sendable {
         self.responder = responder
     }
 
-    /// Always answers with the given corrected text and edits.
+    /// Always answers with the given corrected text (and edits, as JSON, when given).
     public convenience init(corrected: String, edits: [ModelAnswer.Edit] = []) {
-        let json = String(decoding: try! JSONEncoder().encode(ModelAnswer(corrected: corrected, edits: edits)), as: UTF8.self)
-        self.init { _, _ in json }
+        let answer = edits.isEmpty
+            ? corrected
+            : String(decoding: try! JSONEncoder().encode(ModelAnswer(corrected: corrected, edits: edits)), as: UTF8.self)
+        self.init { _, _ in answer }
     }
 
     public var callCount: Int { lock.withLock { calls.count } }

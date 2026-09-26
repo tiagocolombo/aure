@@ -60,6 +60,13 @@ import Testing
         #expect(r.corrected == "Did you receive my email?")
     }
 
+    @Test func realWordSwapIsWordChoiceNotSpelling() async throws {
+        let svc = CorrectionService(provider: FakeLLMProvider(corrected: "You're going to the school tomorrow."))
+        let r = try await svc.check(CheckRequest(text: "Your going to the school tomorrow.", tone: .formal))
+        #expect(r.issues.count == 1)
+        #expect(r.issues[0].category == .wordChoice)
+    }
+
     @Test func canadianSpellingIsNotFlagged() async throws {
         let svc = CorrectionService(provider: FakeLLMProvider(corrected: "I love the colour of the centre."))
         let r = try await svc.check(CheckRequest(text: "I love the colour of the centre.", tone: .formal, dialect: .enCA))

@@ -26,9 +26,35 @@ public struct ModelAnswer: Codable, Equatable, Sendable {
 }
 
 public enum ResponseParser {
-    /// Parses model output. Tolerates code fences, `<think>` blocks and text
-    /// before/after the JSON object.
-    public static func parse(_ raw: String) throws -> ModelAnswer {
+    /// Parses a plain-text answer (the corrected text only). Removes thinking
+    /// blocks, code fences, "Corrected:" style labels and wrapping quotes the
+    /// original did not have. Falls back to JSON if the model answered in JSON.
+    public static func parse(_ raw: String, original: String) throws -> ModelAnswer {
+        var s = raw
+        if let r = s.range(of: "</think>") { s = String(s[r.upperBound...]) }
+        s = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        if s.hasPrefix("{"), let json = try? parseJSON(s) { return json }
+        if s.hasPrefix("```") {
+            s = s.split(separator: "\n", omittingEmptySubsequences: false).dropFirst().joined(separator: "\n")
+            if let r = s.range(of: "```", options: .backwards) { s = String(s[..<r.lowerBound]) }
+            s = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        for label in ["Corrected text:", "Corrected:", "Correction:", "Text:", "Output:"]
+        where s.lowercased().hasPrefix(label.lowercased()) {
+            s = String(s.dropFirst(label.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        let o = original.trimmingCharacters(in: .whitespacesAndNewlines)
+        for (open, close) in [("\"", "\""), ("\u{201C}", "\u{201D}")]
+        where s.hasPrefix(open) && s.hasSuffix(close) && s.count > 1 && !(o.hasPrefix(open) && o.hasSuffix(close)) {
+            s = String(s.dropFirst().dropLast())
+        }
+        if s.isEmpty { throw AureError.invalidModelOutput("empty answer") }
+        return ModelAnswer(corrected: s, edits: [])
+    }
+
+    /// Parses a JSON answer {"corrected": ..., "edits": [...]}. Tolerates code
+    /// fences, `<think>` blocks and text before/after the JSON object.
+    public static func parseJSON(_ raw: String) throws -> ModelAnswer {
         var s = raw
         if let r = s.range(of: "</think>") { s = String(s[r.upperBound...]) }
         guard let start = s.firstIndex(of: "{") else {
@@ -160,8 +186,12 @@ public enum IssueBuilder {
         let hunks = DiffEngine.hunks(from: original, to: corrected).compactMap { h -> DiffEngine.Hunk? in
             let o = h.original, r = h.replacement
             if !o.isEmpty, o.lowercased() == r.lowercased(), r == r.lowercased(), o != r { return nil }
-            // "Their" -> "they're": keep the original's leading capital.
-            if let of = o.first, let rf = r.first, of.isUppercase, rf.isLowercase,
+            // "Their" -> "they're" at the start of a sentence: keep the capital.
+            // ("you and I" -> "you and me" must stay lowercase.)
+            let before = (original as NSString).substring(to: h.range.lowerBound)
+                .trimmingCharacters(in: .whitespaces)
+            let sentenceStart = before.isEmpty || ".!?\n".contains(before.last!)
+            if sentenceStart, let of = o.first, let rf = r.first, of.isUppercase, rf.isLowercase,
                o.lowercased() != r.lowercased() {
                 var h = h
                 h.replacement = rf.uppercased() + r.dropFirst()
@@ -230,7 +260,7 @@ public enum IssueBuilder {
         case .spelling: return "Spelling"
         case .punctuation: return "Punctuation or capitalization"
         case .tone: return "Better fits the selected tone"
-        default: return "Suggested correction"
+        default: return "Grammar fix"
         }
     }
 
