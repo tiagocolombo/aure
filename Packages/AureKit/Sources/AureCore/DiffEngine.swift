@@ -117,8 +117,9 @@ public enum DiffEngine {
             var last = out[out.count - 1]
             let gap = last.range.upperBound..<h.range.lowerBound
             let gapText = gap.isEmpty ? "" : ns.substring(with: NSRange(location: gap.lowerBound, length: gap.count))
-            if !gapText.isEmpty, gapText.allSatisfy(\.isWhitespace), gapText.count <= 1,
-               !last.original.isEmpty, !h.original.isEmpty {
+            let touchesWord = [last.original, last.replacement, h.original, h.replacement]
+                .contains { $0.contains { $0.isLetter } }
+            if gapText.count == 1, gapText.allSatisfy(\.isWhitespace), touchesWord {
                 last.range = last.range.lowerBound..<h.range.upperBound
                 last.original += gapText + h.original
                 last.replacement += gapText + h.replacement

@@ -157,11 +157,25 @@ public enum IssueBuilder {
     /// lowercasing a word (e.g. "I'll" → "i'll") and deleting only final
     /// punctuation. Returns the corrected text with those hunks reverted.
     public static func filterNoise(original: String, corrected: String) -> String {
-        let hunks = DiffEngine.hunks(from: original, to: corrected).filter { h in
+        let hunks = DiffEngine.hunks(from: original, to: corrected).compactMap { h -> DiffEngine.Hunk? in
             let o = h.original, r = h.replacement
-            if !o.isEmpty, o.lowercased() == r.lowercased(), r == r.lowercased(), o != r { return false }
-            if r.isEmpty, !o.isEmpty, o.allSatisfy({ ".!?".contains($0) }) { return false }
-            return true
+            if !o.isEmpty, o.lowercased() == r.lowercased(), r == r.lowercased(), o != r { return nil }
+            // "Their" -> "they're": keep the original's leading capital.
+            if let of = o.first, let rf = r.first, of.isUppercase, rf.isLowercase,
+               o.lowercased() != r.lowercased() {
+                var h = h
+                h.replacement = rf.uppercased() + r.dropFirst()
+                return h
+            }
+            if r.isEmpty, !o.isEmpty, o.allSatisfy({ ".!?".contains($0) }) { return nil }
+            // "tomorow." -> "tomorrow": keep the sentence-ending punctuation.
+            if let last = o.last, ".!?".contains(last), !r.isEmpty, r.last != last,
+               !(r.last.map { ".!?".contains($0) } ?? false) {
+                var h = h
+                h.replacement.append(last)
+                return h.original == h.replacement ? nil : h
+            }
+            return h
         }
         return DiffEngine.apply(hunks, to: original)
     }
@@ -184,10 +198,17 @@ public enum IssueBuilder {
         let o = h.original.trimmingCharacters(in: .whitespaces).lowercased()
         let r = h.replacement.trimmingCharacters(in: .whitespaces).lowercased()
         if let exact = edits.first(where: { $0.from.lowercased() == o && $0.to.lowercased() == r }) { return exact }
+        // Otherwise the edit must mention this hunk's original words (whole
+        // words), and its replacement must contain ours, or vice versa.
+        func words(_ s: String) -> Set<String> {
+            Set(DiffEngine.tokenize(s).filter { $0.first?.isLetter == true }.map { $0.lowercased() })
+        }
+        let ow = words(o), rw = words(r)
         return edits.first { e in
-            let f = e.from.lowercased(), t = e.to.lowercased()
-            return (!o.isEmpty && (f.contains(o) || o.contains(f)) && !f.isEmpty)
-                || (!r.isEmpty && (t.contains(r) || r.contains(t)) && !t.isEmpty)
+            let fw = words(e.from), tw = words(e.to)
+            let fromMatches = !ow.isEmpty && ow.isSubset(of: fw)
+            let toMatches = !rw.isEmpty && (rw.isSubset(of: tw) || tw.isSubset(of: rw)) && !tw.isEmpty
+            return fromMatches && (toMatches || rw.isEmpty)
         }
     }
 

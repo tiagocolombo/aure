@@ -14,7 +14,8 @@ public struct LlamaServerProvider: LLMProvider {
         self.session = session
     }
 
-    public func complete(system: String, user: String, jsonSchema: Data?, params: GenParams) async throws -> String {
+    public func complete(system: String, examples: [Prompt.Turn], user: String, jsonSchema: Data?,
+                         params: GenParams) async throws -> String {
         var req = URLRequest(url: baseURL.appendingPathComponent("v1/chat/completions"))
         req.httpMethod = "POST"
         req.timeoutInterval = 120
@@ -22,10 +23,9 @@ public struct LlamaServerProvider: LLMProvider {
         if let apiKey { req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization") }
 
         var body: [String: Any] = [
-            "messages": [
-                ["role": "system", "content": system],
-                ["role": "user", "content": user],
-            ],
+            "messages": [["role": "system", "content": system]]
+                + examples.flatMap { [["role": "user", "content": $0.user], ["role": "assistant", "content": $0.assistant]] }
+                + [["role": "user", "content": user]],
             "temperature": params.temperature,
             "top_p": params.topP,
             "max_tokens": params.maxTokens,

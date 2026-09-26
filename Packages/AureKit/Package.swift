@@ -11,7 +11,7 @@ let package = Package(
                                            "AureAccessibility", "AureBridge", "AureUI"]),
     ],
     targets: [
-        .target(name: "AureCore", resources: [.copy("Resources")]),
+        .target(name: "AureCore"),
         .target(name: "AureInference", dependencies: ["AureCore"]),
         .target(name: "AureModels", dependencies: ["AureCore"], resources: [.copy("Resources")]),
         .target(name: "AureProfile", dependencies: ["AureCore"]),

@@ -52,7 +52,14 @@ public struct ToneDefinition: Codable, Sendable, Equatable {
 }
 
 public struct Prompt: Sendable, Equatable {
+    public struct Turn: Sendable, Equatable {
+        public var user: String
+        public var assistant: String
+    }
+
     public var system: String
+    /// Few-shot examples, sent as real chat turns before `user`.
+    public var examples: [Turn]
     public var user: String
     public var temperature: Double
     public var maxTokens: Int
@@ -146,54 +153,67 @@ public enum PromptBuilder {
             s += "Correctly spelled words (do not flag): " + style.dictionary.prefix(40).joined(separator: ", ") + "\n"
         }
 
-        s += "\nExamples:\n" + fewShot(req.mode, req.tone)
-
-        var user = "Text:\n\(req.text)"
-        if disableThinking { user += "\n/no_think" }
+        let suffix = disableThinking ? "\n/no_think" : ""
+        let examples = fewShot(req.mode, req.tone).map {
+            Prompt.Turn(user: "Text:\n\($0.text)" + suffix, assistant: $0.json)
+        }
+        let user = "Text:\n\(req.text)" + suffix
 
         let approxTokens = max(16, req.text.utf8.count / 3)
         return Prompt(system: s,
+                      examples: examples,
                       user: user,
                       temperature: req.mode == .correct ? 0.2 : 0.6,
                       maxTokens: min(2048, approxTokens * 3 + 160))
     }
 
-    static func fewShot(_ mode: CheckMode, _ tone: Tone) -> String {
+    static func fewShot(_ mode: CheckMode, _ tone: Tone) -> [(text: String, json: String)] {
+        let raw: String
         switch (mode, tone) {
         case (.correct, .informal):
-            return """
+            raw = """
             Text: hey, their going to be late lol. can u tell the others?
             {"corrected":"hey, they're going to be late lol. can u tell the others?","edits":[{"from":"their","to":"they're","category":"grammar","why":"'they're' means 'they are'"}]}
             Text: sounds good 👍 see you at 3
             {"corrected":"sounds good 👍 see you at 3","edits":[]}
-
+            Text: we should of merged it, lets fix it when your back
+            {"corrected":"we should have merged it, let's fix it when you're back","edits":[{"from":"should of","to":"should have","category":"grammar","why":"'should have', not 'should of'"},{"from":"lets","to":"let's","category":"punctuation","why":"Contraction of 'let us'"},{"from":"your","to":"you're","category":"grammar","why":"'you're' means 'you are'"}]}
             """
         case (.correct, _):
-            return """
+            raw = """
             Text: Hi Anna, I wanted to let you know that the report are ready and I will send it tomorow.
             {"corrected":"Hi Anna, I wanted to let you know that the report is ready and I will send it tomorrow.","edits":[{"from":"are","to":"is","category":"grammar","why":"Subject 'report' is singular"},{"from":"tomorow","to":"tomorrow","category":"spelling","why":"Misspelled word"}]}
             Text: Thank you for your help with the proposal.
             {"corrected":"Thank you for your help with the proposal.","edits":[]}
-
+            Text: We received less applications then last year.
+            {"corrected":"We received fewer applications than last year.","edits":[{"from":"less","to":"fewer","category":"wordChoice","why":"Use 'fewer' with countable nouns"},{"from":"then","to":"than","category":"wordChoice","why":"'than' is used for comparisons"}]}
             """
         case (.rewrite, .informal):
-            return """
+            raw = """
             Text: I would like to inform you that the meeting has been moved to Friday.
             {"corrected":"Heads up, the meeting moved to Friday.","edits":[{"from":"I would like to inform you that the meeting has been moved","to":"Heads up, the meeting moved","category":"tone","why":"More casual phrasing"}]}
-
             """
         case (.rewrite, .formal):
-            return """
+            raw = """
             Text: hey can u send me the numbers asap, need them for the call
             {"corrected":"Hi, could you please send me the numbers as soon as possible? I need them for the call.","edits":[{"from":"hey can u send me the numbers asap, need them","to":"Hi, could you please send me the numbers as soon as possible? I need them","category":"tone","why":"Professional wording"}]}
-
             """
         case (.rewrite, .strictFormal):
-            return """
+            raw = """
             Text: Hi Tom, thanks! We can't make it Monday, can we do Tuesday?
             {"corrected":"Dear Tom, thank you. Unfortunately, we are unable to attend on Monday. Would Tuesday be convenient?","edits":[{"from":"Hi Tom, thanks! We can't make it Monday, can we do Tuesday?","to":"Dear Tom, thank you. Unfortunately, we are unable to attend on Monday. Would Tuesday be convenient?","category":"tone","why":"Strictly formal register"}]}
-
             """
         }
+        var out: [(text: String, json: String)] = []
+        var pending: String?
+        for line in raw.split(separator: "\n").map({ $0.trimmingCharacters(in: .whitespaces) }) where !line.isEmpty {
+            if line.hasPrefix("Text: ") {
+                pending = String(line.dropFirst(6))
+            } else if let t = pending {
+                out.append((t, line))
+                pending = nil
+            }
+        }
+        return out
     }
 }

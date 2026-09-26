@@ -10,6 +10,8 @@ import Testing
         #expect(p.user.hasPrefix("Text:\nhello wrold"))
         #expect(p.user.hasSuffix("/no_think"))
         #expect(p.temperature == (mode == .correct ? 0.2 : 0.6))
+        #expect(!p.examples.isEmpty)
+        #expect(p.examples.allSatisfy { (try? ResponseParser.parse($0.assistant)) != nil })
     }
 
     @Test func dialectNotes() {
@@ -112,6 +114,7 @@ import Testing
         #expect(IssueBuilder.filterNoise(original: "ok, I'll check it.", corrected: "ok, i'll check it") == "ok, I'll check it.")
         #expect(IssueBuilder.filterNoise(original: "Their going home.", corrected: "They're going home") == "They're going home.")
         #expect(IssueBuilder.filterNoise(original: "i am here", corrected: "I am here") == "I am here")
+        #expect(IssueBuilder.filterNoise(original: "Their going tomorow.", corrected: "They're going tomorrow") == "They're going tomorrow.")
     }
 
     @Test func usesModelCategoryAndReason() {
@@ -130,6 +133,18 @@ import Testing
         let issues = IssueBuilder.issues(original: "Hi John how are you", corrected: "Hi John, how are you?", edits: [])
         #expect(issues.count == 2)
         #expect(issues.allSatisfy { $0.category == .punctuation })
+    }
+
+    @Test func keepsSentenceCapital() {
+        #expect(IssueBuilder.filterNoise(original: "Their going home.", corrected: "they're going home.") == "They're going home.")
+    }
+
+    @Test func doesNotReuseUnrelatedReasons() {
+        let issues = IssueBuilder.issues(original: "Their going tomorow", corrected: "They're going tomorrow",
+                                         edits: [.init(from: "Their", to: "They're", category: "grammar", why: "they are")])
+        #expect(issues[0].explanation == "they are")
+        #expect(issues[1].explanation != "they are")
+        #expect(issues[1].category == .spelling)
     }
 
     @Test func spellingGuess() {

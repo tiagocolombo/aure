@@ -3,7 +3,10 @@ import AureCore
 import SwiftUI
 
 public enum AureMain {
-    @MainActor public static func run() { AureApplication.main() }
+    @MainActor public static func run() {
+        SelfTest.runIfRequested()
+        AureApplication.main()
+    }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
