@@ -128,14 +128,6 @@ Unit tests do not require a model download. Real-model evaluations require a run
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for tests, bug reports, and contribution guidelines.
 
-### Branding and About
-
-The approved [SVG logo](docs/assets/aure-logo.svg) is the artwork source for the README, macOS app icon, installer volume, onboarding, and About view. The menu bar uses a monochrome version of the same mark when ready; paused, loading, and problem states keep their status symbols.
-
-Open **About Aure…** from the Aure menu or **Settings → About** for the app version, project links, and credits.
-
-After changing the SVG, run `scripts/generate-brand-assets.sh` on macOS and include the generated `Resources/AppIcon.icns` and `Packages/AureKit/Sources/AureUI/Resources/*.png` files in your change. Generation uses Apple's built-in tools, without additional downloads. `scripts/test.sh` validates the assets, and app builds fail if required branding is missing. To check an assembled or installed app, run `scripts/verify-app-branding.sh /path/to/Aure.app`.
-
 ## License
 
 Aure's original source and the original SVG logo are available under the [MIT License](LICENSE). Third-party runtime code, models, and evaluation datasets retain their own licenses. The model catalog records license identifiers, but you should check each upstream model's terms before using or redistributing its weights. Packaging llama.cpp also requires preserving its applicable license notices; Aure's license does not replace them.
