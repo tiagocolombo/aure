@@ -28,8 +28,8 @@ import Testing
         #expect(AboutView.links.map { $0.url.absoluteString } == [
             "https://github.com/tiagocolombo/aure",
             "https://github.com/tiagocolombo/aure/issues",
-            "https://github.com/tiagocolombo/aure/blob/master/CONTRIBUTING.md",
-            "https://github.com/tiagocolombo/aure/blob/master/LICENSE",
+            "https://github.com/tiagocolombo/aure/blob/main/CONTRIBUTING.md",
+            "https://github.com/tiagocolombo/aure/blob/main/LICENSE",
             "https://github.com/ggml-org/llama.cpp"
         ])
         _ = NSApplication.shared
