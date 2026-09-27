@@ -17,7 +17,7 @@ let package = Package(
         .target(name: "AureProfile", dependencies: ["AureCore"]),
         .target(name: "AureAccessibility", dependencies: ["AureCore"]),
         .target(name: "AureBridge", dependencies: ["AureCore"]),
-        .target(name: "AureUI", dependencies: ["AureCore", "AureInference", "AureModels", "AureProfile", "AureAccessibility"]),
+        .target(name: "AureUI", dependencies: ["AureCore", "AureInference", "AureModels", "AureProfile", "AureAccessibility"], resources: [.copy("Resources")]),
         .executableTarget(name: "AureApp", dependencies: ["AureUI"]),
         .executableTarget(name: "AureEval", dependencies: ["AureCore", "AureInference", "AureModels"]),
         .testTarget(name: "AureCoreTests", dependencies: ["AureCore"]),

@@ -14,7 +14,7 @@
     <key>LSUIElement</key><true/>
     <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
     <key>NSHighResolutionCapable</key><true/>
-    <key>NSHumanReadableCopyright</key><string>Personal use. Runs fully offline.</string>
+    <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Aure contributors. MIT License.</string>
     <key>NSAppleEventsUsageDescription</key><string>Aure uses this to insert corrected text into the app you are typing in.</string>
 </dict>
 </plist>
