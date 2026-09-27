@@ -14,8 +14,8 @@ public struct LlamaServerProvider: LLMProvider {
         self.session = session
     }
 
-    public func complete(system: String, examples: [Prompt.Turn], user: String, jsonSchema: Data?,
-                         params: GenParams) async throws -> String {
+    public func generate(system: String, examples: [Prompt.Turn], user: String, jsonSchema: Data?,
+                         params: GenParams) async throws -> LLMCompletion {
         var req = URLRequest(url: baseURL.appendingPathComponent("v1/chat/completions"))
         req.httpMethod = "POST"
         req.timeoutInterval = 120
@@ -34,6 +34,10 @@ public struct LlamaServerProvider: LLMProvider {
             // Qwen3: keep the chat template in non-thinking mode.
             "chat_template_kwargs": ["enable_thinking": false],
         ]
+        if params.topLogprobs > 0 {
+            body["logprobs"] = true
+            body["top_logprobs"] = params.topLogprobs
+        }
         if let jsonSchema, let schema = try? JSONSerialization.jsonObject(with: jsonSchema) {
             body["response_format"] = ["type": "json_schema", "json_schema": ["name": "aure", "schema": schema]]
         }
@@ -54,15 +58,31 @@ public struct LlamaServerProvider: LLMProvider {
             throw AureError.server("HTTP \(http.statusCode): \(String(decoding: data.prefix(300), as: UTF8.self))")
         }
         struct Completion: Decodable {
+            struct Alt: Decodable { var bytes: [UInt8]?; var token: String?; var logprob: Double }
+            struct Tok: Decodable {
+                var bytes: [UInt8]?
+                var token: String?
+                var logprob: Double
+                var top_logprobs: [Alt]?
+            }
+            struct Logprobs: Decodable { var content: [Tok]? }
             struct Choice: Decodable {
                 struct Message: Decodable { var content: String? }
                 var message: Message
+                var logprobs: Logprobs?
             }
             var choices: [Choice]
         }
-        guard let content = try JSONDecoder().decode(Completion.self, from: data).choices.first?.message.content else {
+        guard let choice = try JSONDecoder().decode(Completion.self, from: data).choices.first,
+              let content = choice.message.content else {
             throw AureError.invalidModelOutput("empty completion")
         }
-        return content
+        let tokens = (choice.logprobs?.content ?? []).map { t in
+            TokenLogprob(bytes: t.bytes ?? Array((t.token ?? "").utf8), logprob: t.logprob,
+                         top: (t.top_logprobs ?? []).map {
+                             TokenLogprob.Alternative(bytes: $0.bytes ?? Array(($0.token ?? "").utf8), logprob: $0.logprob)
+                         })
+        }
+        return LLMCompletion(text: content, tokens: tokens)
     }
 }

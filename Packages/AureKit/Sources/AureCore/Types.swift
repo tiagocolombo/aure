@@ -84,15 +84,18 @@ public struct Issue: Codable, Hashable, Sendable, Identifiable {
     public var replacement: String
     public var category: Category
     public var explanation: String
+    /// How sure the model was that this edit is needed (0...1). 1 when unknown.
+    public var confidence: Double
 
     public init(id: UUID = UUID(), range: Range<Int>, original: String, replacement: String,
-                category: Category, explanation: String) {
+                category: Category, explanation: String, confidence: Double = 1) {
         self.id = id
         self.range = range
         self.original = original
         self.replacement = replacement
         self.category = category
         self.explanation = explanation
+        self.confidence = confidence
     }
 }
 
