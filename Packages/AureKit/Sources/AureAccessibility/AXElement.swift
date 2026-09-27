@@ -70,10 +70,24 @@ public struct AXElement: @unchecked Sendable, Equatable {
     public var value: String? { attribute(kAXValueAttribute) }
     public var parent: AXElement? { element(kAXParentAttribute) }
 
+    /// Only call for an eligible editable element; never aggregate web-area children.
+    public var text: String? {
+        AccessibleText.read(value: value, characterCount: attribute(kAXNumberOfCharactersAttribute)) { range in
+            var cf = CFRange(location: range.lowerBound, length: range.count)
+            guard let arg = AXValueCreate(.cfRange, &cf) else { return nil }
+            var out: CFTypeRef?
+            guard AXUIElementCopyParameterizedAttributeValue(ref, kAXStringForRangeParameterizedAttribute as CFString,
+                                                             arg, &out) == .success else { return nil }
+            return out as? String
+        }
+    }
+
     public var selectedRange: Range<Int>? {
-        guard let v: AXValue = attribute(kAXSelectedTextRangeAttribute) else { return nil }
+        guard let v: CFTypeRef = attribute(kAXSelectedTextRangeAttribute),
+              CFGetTypeID(v) == AXValueGetTypeID() else { return nil }
         var r = CFRange()
-        guard AXValueGetValue(v, .cfRange, &r) else { return nil }
+        guard AXValueGetValue(v as! AXValue, .cfRange, &r), r.location >= 0, r.length >= 0,
+              r.location <= Int.max - r.length else { return nil }
         return r.location..<(r.location + r.length)
     }
 

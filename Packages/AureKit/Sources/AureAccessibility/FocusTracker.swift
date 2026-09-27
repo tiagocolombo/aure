@@ -172,6 +172,14 @@ public final class FocusTracker {
 
     /// Reads an element if it is an editable, non-secure text field.
     static func read(_ el: AXElement, pid: pid_t, bundleId: String?, appName: String?) -> FocusedField? {
+        EditableTarget.read(el, isSecure: { $0.subrole == kAXSecureTextFieldSubrole as String },
+                            ancestor: { $0.element("AXEditableAncestor") }) { target in
+            guard target.pid == pid else { return nil }
+            return readEditable(target, pid: pid, bundleId: bundleId, appName: appName)
+        }
+    }
+
+    private static func readEditable(_ el: AXElement, pid: pid_t, bundleId: String?, appName: String?) -> FocusedField? {
         el.setTimeout(0.25)
         guard let role = el.role else { return nil }
         if role == kAXTextFieldRole as String, el.subrole == kAXSecureTextFieldSubrole as String { return nil }
@@ -181,7 +189,7 @@ public final class FocusTracker {
         // Web: only editable content (contenteditable / textarea).
         if isWeb, !AppRules.editableRoles.contains(role), !el.isSettable(kAXValueAttribute as String),
            el.selectedRange == nil { return nil }
-        guard let text = el.value else { return nil }
+        guard let text = el.text else { return nil }
 
         let selection = el.selectedRange
         var caret: CGRect?
