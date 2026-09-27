@@ -12,6 +12,19 @@ public actor CorrectionService {
 
     public var style: StyleContext = .empty
     public var toneDefinitions: [Tone: ToneDefinition] = [:]
+    public var promptStyle: PromptStyle = .aure
+    /// Edits the model was less sure about than this are not shown (correct mode).
+    public var minConfidence: Double = 0
+
+    public func setPromptStyle(_ p: PromptStyle) {
+        promptStyle = p
+        clearCache()
+    }
+
+    public func setMinConfidence(_ c: Double) {
+        minConfidence = c
+        clearCache()
+    }
 
     struct CacheKey: Hashable {
         var request: CheckRequest
@@ -44,26 +57,125 @@ public actor CorrectionService {
 
     public var hasProvider: Bool { provider != nil }
 
+    /// Longest piece sent to the model in one call (see `TextSegmenter`).
+    public var maxSegmentCharacters = TextSegmenter.defaultMaxCharacters
+    /// How many pieces of a long text are sent to the model at the same time.
+    /// Should match the server's parallel slots (`LlamaServerProcess.Config.parallel`).
+    public var maxParallel = 1
+
+    public func setMaxParallel(_ n: Int) {
+        maxParallel = max(1, n)
+    }
+
     public func check(_ request: CheckRequest) async throws -> CheckResult {
         let trimmed = request.text.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
             return CheckResult(request: request, corrected: request.text, issues: [], latencyMs: 0)
         }
-        let key = CacheKey(request: request, styleHash: style.hashValue ^ (toneDefinitions[request.tone]?.description.hashValue ?? 0))
+        guard request.mode == .correct else { return try await checkOne(request) }
+        let ns = request.text as NSString
+        let segments = TextSegmenter.segments(of: request.text, maxCharacters: maxSegmentCharacters)
+        // Short text (no piece worth splitting out) or one piece covering it all: check as is.
+        if segments.isEmpty || (segments.count == 1
+            && ns.substring(with: NSRange(location: segments[0].lowerBound, length: segments[0].count)) == trimmed) {
+            return try await checkOne(request)
+        }
+        return try await checkSegmented(request, segments: segments)
+    }
+
+    private enum PieceOutcome: Sendable {
+        case issues([Issue])
+        case failed(String)
+    }
+
+    /// Long text: check the pieces (up to `maxParallel` at a time; each is
+    /// cached, so editing one paragraph only re-checks that paragraph), then merge.
+    private func checkSegmented(_ request: CheckRequest, segments: [Range<Int>]) async throws -> CheckResult {
+        let started = Date()
+        let ns = request.text as NSString
+        let subs: [(Range<Int>, CheckRequest)] = segments.map { r in
+            var sub = request
+            sub.text = ns.substring(with: NSRange(location: r.lowerBound, length: r.count))
+            return (r, sub)
+        }
+        let limit = max(1, maxParallel)
+
+        let outcomes: [PieceOutcome] = try await withThrowingTaskGroup(of: (Int, PieceOutcome).self) { group in
+            var results = [PieceOutcome](repeating: .issues([]), count: subs.count)
+            var next = 0
+            func add() {
+                let i = next
+                let (r, sub) = subs[i]
+                next += 1
+                group.addTask {
+                    do {
+                        let part = try await self.checkOne(sub)
+                        return (i, .issues(part.issues.map { issue in
+                            var issue = issue
+                            issue.range = (issue.range.lowerBound + r.lowerBound)..<(issue.range.upperBound + r.lowerBound)
+                            return issue
+                        }))
+                    } catch is CancellationError {
+                        throw CancellationError()
+                    } catch AureError.cancelled {
+                        throw AureError.cancelled
+                    } catch {
+                        // One bad piece (e.g. rejected answer) should not hide the others.
+                        return (i, .failed(error.localizedDescription))
+                    }
+                }
+            }
+            while next < min(limit, subs.count) { add() }
+            while let (i, outcome) = try await group.next() {
+                results[i] = outcome
+                if next < subs.count { add() }
+            }
+            return results
+        }
+
+        var issues: [Issue] = []
+        var failures: [String] = []
+        for o in outcomes {
+            switch o {
+            case .issues(let list): issues += list
+            case .failed(let why): failures.append(why)
+            }
+        }
+        if failures.count == segments.count { throw AureError.rejected(failures[0]) }
+        // Spelling in lines too short to send to the model ("Thansk,").
+        let dictionary = Set(style.dictionary.map { $0.lowercased() })
+        issues += await Self.spellingIssues(in: request.text, dialect: request.dialect,
+                                            dictionary: dictionary, excluding: issues)
+        issues.sort { $0.range.lowerBound < $1.range.lowerBound }
+        return CheckResult(request: request, corrected: Self.applying(issues, to: request.text), issues: issues,
+                           latencyMs: Int(Date().timeIntervalSince(started) * 1000))
+    }
+
+    private func checkOne(_ request: CheckRequest) async throws -> CheckResult {
+        let key = CacheKey(request: request,
+                           styleHash: style.hashValue ^ (toneDefinitions[request.tone]?.description.hashValue ?? 0)
+                               ^ promptStyle.hashValue ^ minConfidence.hashValue)
         if let hit = cache[key] { return hit }
         if let running = inFlight[key] { return try await running.value }
 
         guard let provider else { throw AureError.modelNotLoaded }
-        let prompt = PromptBuilder.build(request, toneDefinition: toneDefinitions[request.tone], style: style)
+        let prompt = PromptBuilder.build(request, toneDefinition: toneDefinitions[request.tone], style: style,
+                                         promptStyle: promptStyle)
+        let minConfidence = self.minConfidence
         let dictionary = Set(style.dictionary.map { $0.lowercased() })
 
         let task = Task<CheckResult, Error> {
             let started = Date()
-            let raw = try await provider.complete(system: prompt.system, examples: prompt.examples, user: prompt.user,
-                                                  jsonSchema: nil,
-                                                  params: GenParams(temperature: prompt.temperature, maxTokens: prompt.maxTokens))
+            let wantConfidence = request.mode == .correct
+            let completion = try await provider.generate(
+                system: prompt.system, examples: prompt.examples, user: prompt.user, jsonSchema: nil,
+                params: GenParams(temperature: prompt.temperature, maxTokens: prompt.maxTokens,
+                                  topLogprobs: wantConfidence ? 5 : 0))
             try Task.checkCancellation()
-            let answer = try ResponseParser.parse(raw, original: request.text)
+            let answer = try ResponseParser.parse(completion.text, original: request.text)
+            let scored = wantConfidence
+                ? EditConfidence.score(original: request.text, output: answer.corrected, tokens: completion.tokens)
+                : nil
             var corrected = try Validator.validate(original: request.text, answer: answer, mode: request.mode)
             corrected = Self.restoreDictionaryWords(original: request.text, corrected: corrected, dictionary: dictionary)
             if request.mode == .correct {
@@ -71,7 +183,11 @@ public actor CorrectionService {
             }
             var issues = IssueBuilder.issues(original: request.text, corrected: corrected, edits: answer.edits)
             issues = await Self.relabel(issues, dialect: request.dialect)
+            if let scored {
+                issues = EditConfidence.apply(scored, to: issues)
+            }
             if request.mode == .correct {
+                issues = issues.filter { $0.confidence >= minConfidence }
                 issues += await Self.spellingIssues(in: request.text, dialect: request.dialect,
                                                     dictionary: dictionary, excluding: issues)
                 issues.sort { $0.range.lowerBound < $1.range.lowerBound }

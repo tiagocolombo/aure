@@ -14,17 +14,23 @@ public actor LlamaServerProcess {
 
     public struct Config: Sendable, Equatable {
         public var modelPath: URL
+        /// Context per request (tokens). Each parallel slot gets this much.
         public var contextSize: Int = 4096
         /// nil = automatic (all layers on Apple Silicon, 0 on Intel).
         public var gpuLayers: Int?
         /// nil = automatic (physical cores).
         public var threads: Int?
+        /// Requests the server can work on at once (paragraphs of a long email).
+        /// nil = automatic (`Hardware.recommendedParallelSlots`).
+        public var parallel: Int?
 
-        public init(modelPath: URL, contextSize: Int = 4096, gpuLayers: Int? = nil, threads: Int? = nil) {
+        public init(modelPath: URL, contextSize: Int = 4096, gpuLayers: Int? = nil, threads: Int? = nil,
+                    parallel: Int? = nil) {
             self.modelPath = modelPath
             self.contextSize = contextSize
             self.gpuLayers = gpuLayers
             self.threads = threads
+            self.parallel = parallel
         }
     }
 
@@ -81,6 +87,7 @@ public actor LlamaServerProcess {
         let port = Self.freePort()
         apiKey = UUID().uuidString
         let hw = Hardware.current
+        let slots = max(1, config.parallel ?? hw.recommendedParallelSlots)
 
         let p = Process()
         p.executableURL = executable
@@ -88,12 +95,12 @@ public actor LlamaServerProcess {
             "-m", config.modelPath.path,
             "--host", "127.0.0.1", "--port", String(port),
             "--api-key", apiKey,
-            "-c", String(config.contextSize),
+            "-c", String(config.contextSize * slots),
             "-ngl", String(config.gpuLayers ?? (hw.isAppleSilicon ? 99 : 0)),
             "-t", String(config.threads ?? hw.performanceCores),
             "--jinja",
             "--no-webui",
-            "-np", "1",
+            "-np", String(slots),
         ]
         if let logURL {
             FileManager.default.createFile(atPath: logURL.path, contents: nil)

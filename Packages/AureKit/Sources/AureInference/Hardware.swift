@@ -11,6 +11,14 @@ public struct Hardware: Sendable, Equatable {
 
     public var memoryGB: Double { Double(memoryBytes) / 1_073_741_824 }
 
+    /// Paragraphs of a long email checked at the same time. Apple Silicon GPUs
+    /// batch parallel requests well; on Intel the CPU is already saturated by
+    /// one request, so parallel slots give little (measured in docs/MODEL_EVAL.md).
+    public var recommendedParallelSlots: Int {
+        guard isAppleSilicon else { return 1 }
+        return memoryGB >= 16 ? 4 : 2
+    }
+
     public static let current: Hardware = {
         let arm = sysctlInt("hw.optional.arm64") == 1
         let mem = UInt64(sysctlInt64("hw.memsize"))
