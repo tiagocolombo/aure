@@ -4,6 +4,8 @@ set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 root="$AURE_ROOT"
 
+"$root/scripts/test-brand-assets.sh"
+
 echo "==> swift test (Packages/AureKit)"
 apple swift test --package-path "$root/Packages/AureKit" "$@"
 

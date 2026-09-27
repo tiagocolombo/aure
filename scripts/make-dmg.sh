@@ -15,15 +15,27 @@ if [ "${AURE_SKIP_BUILD:-0}" != 1 ]; then
   "$root/scripts/build-app.sh" release
 fi
 [ -d "$app" ] || { echo "error: $app not found"; exit 1; }
+"$root/scripts/verify-app-branding.sh" "$app"
 
 version="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$app/Contents/Info.plist")"
 mkdir -p "$root/dist"
 dmg="$root/dist/Aure-$version.dmg"
-stage="$(mktemp -d)/Aure"
+work="$(mktemp -d)"
+stage="$work/Aure"
+mount="$work/mounted"
+mounted=0
+cleanup() {
+  if [ "$mounted" = 1 ]; then apple hdiutil detach "$mount" >/dev/null 2>&1 || return; fi
+  rm -rf "$work"
+}
+trap cleanup EXIT
 mkdir -p "$stage"
 
 cp -R "$app" "$stage/"
 ln -s /Applications "$stage/Applications"
+# Finder uses this icon for the mounted installation volume.
+cp "$app/Contents/Resources/AppIcon.icns" "$stage/.VolumeIcon.icns"
+
 cat > "$stage/READ ME FIRST.txt" <<'EOF'
 Installing Aure
 ===============
@@ -40,8 +52,15 @@ EOF
 
 rm -f "$dmg"
 echo "==> creating $dmg"
-apple hdiutil create -volname "Aure $version" -srcfolder "$stage" -fs HFS+ -format UDZO -ov "$dmg" >/dev/null
-rm -rf "$(dirname "$stage")"
+# hdiutil does not preserve the staging directory's custom-icon flag on the
+# volume root. Set it on the mounted writable image before compressing.
+apple hdiutil create -volname "Aure $version" -srcfolder "$stage" -fs HFS+ -format UDRW "$work/writable.dmg" >/dev/null
+apple hdiutil attach -nobrowse -mountpoint "$mount" "$work/writable.dmg" >/dev/null
+mounted=1
+apple xcrun SetFile -a C "$mount"
+apple hdiutil detach "$mount" >/dev/null
+mounted=0
+apple hdiutil convert "$work/writable.dmg" -format UDZO -o "$dmg" >/dev/null
 
 # Sign the DMG itself when a stable identity exists.
 if security find-identity -v -p codesigning 2>/dev/null | grep -q '"Aure Local"'; then
@@ -49,4 +68,14 @@ if security find-identity -v -p codesigning 2>/dev/null | grep -q '"Aure Local"'
 fi
 
 apple hdiutil verify "$dmg" >/dev/null
+apple hdiutil attach -readonly -nobrowse -mountpoint "$mount" "$dmg" >/dev/null
+mounted=1
+"$root/scripts/verify-app-branding.sh" "$mount/Aure.app"
+cmp "$app/Contents/Resources/AppIcon.icns" "$mount/.VolumeIcon.icns"
+case "$(apple xcrun GetFileInfo -a "$mount")" in
+  *C*) ;;
+  *) echo "error: mounted installer is missing its custom-icon flag"; exit 1 ;;
+esac
+apple hdiutil detach "$mount" >/dev/null
+mounted=0
 echo "==> $(du -h "$dmg" | cut -f1)  $dmg"

@@ -64,6 +64,11 @@ struct AureApplication: App {
         }
         .windowResizability(.contentSize)
 
+        Window("About Aure", id: "about") {
+            AboutView()
+        }
+        .windowResizability(.contentSize)
+
         Settings {
             SettingsView().environment(state)
         }
@@ -77,7 +82,16 @@ struct MenuBarIcon: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Image(systemName: symbol)
+        Group {
+            if let symbol = presentation.symbol {
+                Image(systemName: symbol)
+            } else if let image = AureBrand.menuBarImage {
+                Image(nsImage: image)
+            } else {
+                Image(systemName: "text.badge.checkmark")
+            }
+        }
+            .accessibilityLabel(presentation.accessibilityLabel)
             .task {
                 // Start the engine at launch; show onboarding on first run.
                 delegate.state = state
@@ -93,15 +107,8 @@ struct MenuBarIcon: View {
             }
     }
 
-    var symbol: String {
-        if state.paused { return "text.badge.xmark" }
-        switch state.engine {
-        case .ready:
-            if case .issues = state.coordinator?.status { return "exclamationmark.bubble" }
-            return "text.badge.checkmark"
-        case .loading: return "hourglass"
-        case .noModel, .failed: return "text.badge.minus"
-        }
+    var presentation: MenuBarPresentation {
+        MenuBarPresentation(paused: state.paused, engine: state.engine, status: state.coordinator?.status)
     }
 }
 
@@ -114,6 +121,7 @@ struct MenuContent: View {
         @Bindable var app = app
         VStack(alignment: .leading, spacing: 12) {
             HStack {
+                AureLogo(size: 28).accessibilityHidden(true)
                 Text("Aure").font(.headline)
                 Spacer()
                 StatusDot(status: app.engine)
@@ -152,6 +160,9 @@ struct MenuContent: View {
             }
             MenuButton(title: "Settings…", systemImage: "gearshape", shortcut: "⌘,") {
                 activate(); openSettings()
+            }
+            MenuButton(title: "About Aure…", systemImage: "info.circle") {
+                activate(); openWindow(id: "about")
             }
             if !app.onboardingDone || app.engine == .noModel {
                 MenuButton(title: "Set up Aure…", systemImage: "sparkles") {

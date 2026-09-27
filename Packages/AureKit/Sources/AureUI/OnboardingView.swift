@@ -41,9 +41,9 @@ struct OnboardingView: View {
 
     var welcome: some View {
         VStack(spacing: 16) {
-            Image(systemName: "text.badge.checkmark").font(.system(size: 56)).foregroundStyle(.tint)
+            AureLogo(size: 76)
             Text("Welcome to Aure").font(.largeTitle.bold())
-            Text("Grammar and tone help that runs entirely on your Mac. No account, no cloud: your writing never leaves this computer.")
+            Text("Grammar and tone help with local inference on your Mac. Aure does not send your writing to a cloud inference service.")
                 .multilineTextAlignment(.center).foregroundStyle(.secondary).frame(maxWidth: 440)
             VStack(alignment: .leading, spacing: 8) {
                 Label("Pick a small local model (0.5–2.5 GB)", systemImage: "cpu")

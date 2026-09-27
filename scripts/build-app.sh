@@ -22,6 +22,9 @@ app="$out/Aure.app"
 archs="${AURE_ARCHS:-universal}"
 version="$(sed -n 's/.*string = "\(.*\)".*/\1/p' "$pkg/Sources/AureCore/AureCore.swift")"
 
+# Branding is required, not an optional copy that silently ships a generic icon.
+"$root/scripts/test-brand-assets.sh"
+
 # `swift build --arch a --arch b` needs full Xcode (xcbuild), so build each
 # slice with its own triple and join them with lipo. Works with only the
 # Command Line Tools.
@@ -51,7 +54,7 @@ for b in "$bin_dir"/*.bundle; do
 done
 
 sed "s/__VERSION__/$version/g" "$root/Resources/Info.plist" > "$app/Contents/Info.plist"
-if [ -f "$root/Resources/AppIcon.icns" ]; then cp "$root/Resources/AppIcon.icns" "$app/Contents/Resources/"; fi
+cp "$root/Resources/AppIcon.icns" "$app/Contents/Resources/"
 
 if [ -x "$root/build/llama/llama-server" ]; then
   cp "$root/build/llama/llama-server" "$app/Contents/Helpers/llama-server"
@@ -60,4 +63,5 @@ else
 fi
 
 "$root/scripts/sign-app.sh" "$app"
+"$root/scripts/verify-app-branding.sh" "$app"
 echo "==> built $app"
