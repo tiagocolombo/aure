@@ -13,8 +13,8 @@ struct AboutView: View {
     static let links: [ProjectLink] = [
         .init(title: "Repository", url: URL(string: "https://github.com/tiagocolombo/aure")!),
         .init(title: "Report an issue", url: URL(string: "https://github.com/tiagocolombo/aure/issues")!),
-        .init(title: "Contribute", url: URL(string: "https://github.com/tiagocolombo/aure/blob/master/CONTRIBUTING.md")!),
-        .init(title: "License", url: URL(string: "https://github.com/tiagocolombo/aure/blob/master/LICENSE")!),
+        .init(title: "Contribute", url: URL(string: "https://github.com/tiagocolombo/aure/blob/main/CONTRIBUTING.md")!),
+        .init(title: "License", url: URL(string: "https://github.com/tiagocolombo/aure/blob/main/LICENSE")!),
         .init(title: "llama.cpp", url: URL(string: "https://github.com/ggml-org/llama.cpp")!)
     ]
 

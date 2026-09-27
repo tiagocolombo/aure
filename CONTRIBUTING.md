@@ -25,6 +25,8 @@ scripts/lint.sh
 
 Do not change unrelated files or reformat the whole project. Never commit signing identities, credentials, downloaded models, build output, private writing, or raw diagnostic logs.
 
+Pull requests into `main` need an approving review from the maintainer and passing checks (tests, build, secret scan, CodeQL) before they can merge. Report security problems privately as described in [SECURITY.md](SECURITY.md), not in an issue.
+
 ## Corrections and model evaluation
 
 **The model supplies the corrections.** Do not add hardcoded grammar rules, replacement dictionaries, or word lists to fix individual examples in application code. Improve the prompt, inference configuration, or model instead, and measure the result. Hardcoded examples belong in tests and evaluation fixtures. Structural output validation and replacement-safety checks are separate from generating corrections.
