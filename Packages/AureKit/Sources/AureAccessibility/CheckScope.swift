@@ -1,7 +1,10 @@
 import Foundation
 
-/// Picks the part of a field to check: the paragraph around the caret,
-/// capped in length, and decides whether it is worth checking at all.
+/// Picks the part of a field to check and decides whether it is worth
+/// checking at all. Whole texts up to `maxLength` are checked (a long email
+/// fits; `CorrectionService` splits it into paragraphs and caches each one, so
+/// an edit only re-checks the changed paragraph). Longer texts (documents)
+/// fall back to the paragraph around the caret.
 public enum CheckScope {
     public struct Slice: Equatable, Sendable {
         /// UTF-16 range of the slice in the full text.
@@ -9,7 +12,7 @@ public enum CheckScope {
         public var text: String
     }
 
-    public static let maxLength = 2000
+    public static let maxLength = 10_000
     public static let minCharacters = 12
     public static let minWords = 3
 

@@ -15,34 +15,44 @@ public enum TextReplacer {
     @discardableResult
     public static func replace(in field: FocusedField, range: Range<Int>, with replacement: String) async -> Method? {
         let el = field.element
-        let expected = (field.text as NSString).replacingCharacters(
-            in: NSRange(location: range.lowerBound, length: range.count), with: replacement)
+        guard let expected = ReplacementSafety.expectedText(original: field.text, current: el.text,
+                                                              range: range, replacement: replacement,
+                                                              hasFocus: hasFocus(field)),
+              !Task.isCancelled, await select(el, range),
+              !Task.isCancelled, hasFocus(field), el.text == field.text else { return nil }
 
-        if await select(el, range) {
-            if el.set(kAXSelectedTextAttribute, replacement as CFString) {
-                try? await Task.sleep(for: .milliseconds(80))
-                if el.value == expected {
-                    Log.info("replace: accessibility ok (\(field.bundleId ?? "?"))")
-                    return .accessibility
-                }
+        if el.set(kAXSelectedTextAttribute, replacement as CFString) {
+            try? await Task.sleep(for: .milliseconds(80))
+            if el.text == expected {
+                Log.info("replace: accessibility verified (\(field.bundleId ?? "?"))")
+                return .accessibility
             }
+            // An accepted write may be delayed or partial. Never duplicate it
+            // with a second write/paste when its result is uncertain.
+            Log.info("replace: accessibility result unverified; no retry")
+            return nil
         }
 
-        // Fallback: select the range and paste. Only paste if the selection is
-        // verified, or if we replace the whole field (⌘A selects it).
-        let selected = await select(el, range)
-        var textToPaste = replacement
-        if !selected {
-            // Cannot select just this range: select the whole field (⌘A) and
-            // paste the whole corrected text instead.
-            postKey(CGKeyCode(kVK_ANSI_A), flags: .maskCommand)
-            textToPaste = expected
-        }
-        try? await Task.sleep(for: .milliseconds(80))
-        await paste(textToPaste)
+        // A canvas/proxy editor must never receive an unverified Command-A.
+        // Paste only into the same, unchanged field with the exact range still selected.
+        guard !Task.isCancelled, hasFocus(field), el.text == field.text,
+              el.selectedRange == range else { return nil }
+        await paste(replacement)
         try? await Task.sleep(for: .milliseconds(150))
-        Log.info("replace: paste (\(selected ? "range" : "select-all")) in \(field.bundleId ?? "?")")
+        guard el.text == expected else {
+            Log.info("replace: paste result unverified")
+            return nil
+        }
+        Log.info("replace: paste verified (\(field.bundleId ?? "?"))")
         return .paste
+    }
+
+    private static func hasFocus(_ field: FocusedField) -> Bool {
+        guard AccessibilityPermission.isTrusted,
+              NSWorkspace.shared.frontmostApplication?.processIdentifier == field.pid,
+              let focused = AXElement.application(pid: field.pid).element(kAXFocusedUIElementAttribute)
+        else { return false }
+        return focused == field.element || focused.element("AXEditableAncestor") == field.element
     }
 
     /// Replaces the whole field value.
@@ -70,8 +80,11 @@ public enum TextReplacer {
         } ?? []
         pb.clearContents()
         pb.setString(text, forType: .string)
+        let ownedChangeCount = pb.changeCount
         postKey(CGKeyCode(kVK_ANSI_V), flags: .maskCommand)
         try? await Task.sleep(for: .milliseconds(300))
+        // Do not erase a newer copy made by the user or another application.
+        guard pb.changeCount == ownedChangeCount else { return }
         pb.clearContents()
         let items = saved.map { dict -> NSPasteboardItem in
             let item = NSPasteboardItem()
