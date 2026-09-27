@@ -145,10 +145,16 @@ struct MenuContent: View {
 
             Toggle("Pause Aure", isOn: $app.paused).toggleStyle(.switch).controlSize(.small)
 
-            if !app.installedModels.isEmpty {
+            if !app.installedModels.isEmpty || app.selectedModel != nil {
+                // Catalog models, plus the imported / other-app model in use so the picker never shows blank.
+                let choices = app.installedModels + (app.selectedModel.map { m in
+                    app.installedModels.contains { $0.id == m.id } ? [] : [m]
+                } ?? [])
                 Picker("Model", selection: Binding(get: { app.selectedModelID ?? "" },
-                                                   set: { id in if let m = app.catalog.first(where: { $0.id == id }) { app.select(m) } })) {
-                    ForEach(app.installedModels) { Text("\($0.name) (\($0.sizeDescription))").tag($0.id) }
+                                                   set: { id in if let m = choices.first(where: { $0.id == id }) { app.select(m) } })) {
+                    ForEach(choices) { m in
+                        Text(m.bytes > 0 ? "\(m.name) (\(m.sizeDescription))" : m.name).tag(m.id)
+                    }
                 }
                 .controlSize(.small)
             }

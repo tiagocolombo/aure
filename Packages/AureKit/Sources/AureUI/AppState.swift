@@ -70,6 +70,9 @@ public final class AppState {
     public private(set) var engine: EngineStatus = .noModel
     public var downloads: [String: DownloadState] = [:]
     public let catalog: [ModelInfo]
+    /// GGUF models other local-LLM tools (LM Studio, Ollama, llama.cpp, ...) already downloaded.
+    public private(set) var externalModels: [ExternalModel] = []
+    public private(set) var scanningExternalModels = false
     public let hardware = Hardware.current
     public let store: ModelStore
     public let correction = CorrectionService()
@@ -114,7 +117,30 @@ public final class AppState {
         ModelCatalog.recommendedID(isAppleSilicon: hardware.isAppleSilicon, memoryGB: hardware.memoryGB)
     }
 
-    public var selectedModel: ModelInfo? { catalog.first { $0.id == selectedModelID } ?? importedModel }
+    public var selectedModel: ModelInfo? {
+        catalog.first { $0.id == selectedModelID } ?? importedModel ?? externalModel
+    }
+
+    /// Models from other tools are used where they are: id "path:<absolute path>".
+    var externalModel: ModelInfo? {
+        guard let id = selectedModelID, id.hasPrefix(ExternalModels.idPrefix) else { return nil }
+        if let known = externalModels.first(where: { $0.matches(id) }) { return known.info }
+        // Before the first scan finishes: rebuild from the path so the engine can start at launch.
+        let url = URL(fileURLWithPath: String(id.dropFirst(ExternalModels.idPrefix.count)))
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return ExternalModel(url: url, name: url.deletingPathExtension().lastPathComponent, source: "Other app",
+                             bytes: 0, architecture: nil).info
+    }
+
+    /// Looks for models from other tools off the main thread.
+    public func refreshExternalModels() async {
+        guard !scanningExternalModels else { return }
+        scanningExternalModels = true
+        let exclude = store.directory
+        let found = await Task.detached(priority: .utility) { ExternalModels.scan(exclude: exclude) }.value
+        externalModels = found
+        scanningExternalModels = false
+    }
 
     /// Imported GGUFs use their file name as id ("file:<name>").
     var importedModel: ModelInfo? {
@@ -129,7 +155,15 @@ public final class AppState {
     public var installedModels: [ModelInfo] { catalog.filter { store.isInstalled($0) } }
 
     public func isInstalled(_ m: ModelInfo) -> Bool {
-        m.family == "custom" ? FileManager.default.fileExists(atPath: store.localURL(for: m).path) : store.isInstalled(m)
+        switch m.family {
+        case "custom", ExternalModels.family: FileManager.default.fileExists(atPath: modelURL(for: m).path)
+        default: store.isInstalled(m)
+        }
+    }
+
+    /// Where the weights are: Aure's models folder, or the other tool's folder for external models.
+    func modelURL(for m: ModelInfo) -> URL {
+        m.family == ExternalModels.family ? m.url : store.localURL(for: m)
     }
 
     // MARK: Engine
@@ -148,7 +182,7 @@ public final class AppState {
         engine = .loading(model.name)
         do {
             let slots = hardware.recommendedParallelSlots
-            let provider = try await server.start(.init(modelPath: store.localURL(for: model), parallel: slots))
+            let provider = try await server.start(.init(modelPath: modelURL(for: model), parallel: slots))
             await correction.setProvider(provider)
             await correction.setMaxParallel(slots)
             engine = .ready(model.name)

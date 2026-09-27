@@ -91,16 +91,35 @@ struct ModelsSettings: View {
                         }
                     }
                 }
+                if !app.externalModels.isEmpty {
+                    Section {
+                        ForEach(app.externalModels) { m in ExternalModelRow(model: m) }
+                    } header: {
+                        Text("From other apps on this Mac")
+                    } footer: {
+                        Text("Used where they are, without copying. Aure is tuned and tested with the models above; others may fix fewer errors or change correct text.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
             }
             .listStyle(.inset(alternatesRowBackgrounds: true))
             HStack {
                 Button("Import GGUF…") { importing = true }
                 Button("Show models folder") { NSWorkspace.shared.open(app.store.directory) }
+                Button {
+                    Task { await app.refreshExternalModels() }
+                } label: {
+                    Label("Find models from other apps", systemImage: "arrow.clockwise")
+                }
+                .disabled(app.scanningExternalModels)
+                .help("Looks in LM Studio, Ollama, llama.cpp, Hugging Face, Jan and GPT4All folders")
+                if app.scanningExternalModels { ProgressView().controlSize(.small) }
                 Spacer()
-                Text("Models run fully offline once downloaded.").font(.caption).foregroundStyle(.secondary)
             }
+            Text("Models run fully offline once downloaded.").font(.caption).foregroundStyle(.secondary)
         }
         .padding()
+        .task { await app.refreshExternalModels() }
         .fileImporter(isPresented: $importing, allowedContentTypes: [UTType(filenameExtension: "gguf") ?? .data]) { r in
             if case let .success(url) = r {
                 let ok = url.startAccessingSecurityScopedResource()
@@ -108,6 +127,33 @@ struct ModelsSettings: View {
                 app.importModel(from: url)
             }
         }
+    }
+}
+
+struct ExternalModelRow: View {
+    @Environment(AppState.self) private var app
+    let model: ExternalModel
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(model.name).fontWeight(.medium)
+                    Text(model.info.sizeDescription).font(.caption).padding(.horizontal, 5).padding(.vertical, 1)
+                        .background(Capsule().fill(.quaternary))
+                }
+                Text([model.source, model.architecture].compactMap { $0 }.joined(separator: " · "))
+                    .font(.caption).foregroundStyle(.secondary)
+                Text(model.url.path).font(.caption2).foregroundStyle(.tertiary).lineLimit(1).truncationMode(.middle)
+            }
+            Spacer()
+            if model.matches(app.selectedModelID) {
+                Label("In use", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+            } else {
+                Button("Use") { app.select(model.info) }
+            }
+        }
+        .padding(.vertical, 2)
     }
 }
 
