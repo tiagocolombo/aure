@@ -1,0 +1,66 @@
+✔ [formal/improve] I am writing this email in order to let you know that at this point in time the report will not be ready until Friday.
+    → I am writing to inform you that the report will not be ready until Friday.
+✔ [formal/improve] It was decided by the team that the budget would be reviewed by us again next week.
+    → The team decided the budget will be reviewed by us again next week.
+✔ [formal/improve] Maria, I just wanted to reach out and touch base with you regarding the contract, because I was wondering if you had maybe had a chance to look at it yet.
+    → Maria, I wanted to reach out and touch base with you regarding the contract. I was wondering if you had had a chance to look at it yet.
+✔ [formal/improve] The meeting that we had planned to have on Thursday at 3 pm is something that we are going to need to move to a different time.
+    → The meeting we planned for Thursday at 3 pm needs to be rescheduled to a different time.
+✔ [formal/improve] Please be advised that the invoice for $4,200 has not been paid yet, and we would appreciate it if you could make sure it gets paid.
+    → Please be advised that the $4,200 invoice has not been paid yet, and we would appreciate it if you could ensure it is paid.
+✔ [formal/improve] Due to the fact that the deadline is very close, we need to make a decision about what we are going to do very soon.
+    → Because the deadline is very close, we need to make a decision about what to do soon.
+✔ [formal/improve] In my opinion I think that the Q3 numbers are basically quite good overall.
+    → In my opinion, the Q3 numbers are generally quite good.
+✔ [formal/improve] The onboarding process is a process that takes a long time and it is confusing and new hires often get lost in it.
+    → The onboarding process is long and confusing, and new hires often get lost in it.
+✔ [formal/improve] I wanted to ask if it would be possible for you to possibly send me the slides, John, if that is okay with you.
+    → I would like to ask if it would be possible for you to send me the slides, John, if that is acceptable with you.
+✔ [formal/improve] The server went down on Monday and it went down because the disk was full and nobody noticed that the disk was full.
+    → The server went down on Monday because the disk was full and no one noticed.
+✔ [informal/improve] I would like to inform everyone that I will unfortunately be unable to attend the standup today.
+    → I’ll be unable to attend the standup today.
+✔ [informal/improve] @sam I have completed my review of the PR and I have left a number of comments for your consideration.
+    → @sam I finished my review of the PR and left some comments for you to consider.
+✔ [informal/improve] Would you perhaps be interested in joining us for lunch at 12:30 today, if your schedule permits?
+    → Would you like to join us for lunch at 12:30 today if you're free?
+✔ [informal/improve] It has come to my attention that the build is currently failing again at the present time.
+    → The build is failing again right now.
+✔ [informal/improve] The mockups have been uploaded to #design by me so that everyone is able to take a look at them.
+    → I uploaded the mockups to #design. Everyone can check them out.
+✔ [informal/improve] Thank you very much for all of your assistance with the docs, it is greatly appreciated by me.
+    → Thanks so much for all the help with the docs. I really appreciate it.
+✔ [strictFormal/improve] Hey, just checking in on the proposal, any chance we get it by Friday?
+    → Could you please confirm the status of the proposal? Is there a possibility it may be ready by Friday?
+✔ [strictFormal/improve] Thanks a ton for the heads up, we'll get the stuff ready for the board on June 12.
+    → Thank you for the heads up. We will prepare the materials for the board on June 12.
+✔ [strictFormal/improve] Dr. Patel, sorry but I can't make the call, can we do it some other time?
+    → Dr. Patel, I regret that I cannot conduct the call at this time. Would another time be convenient?
+✔ [strictFormal/improve] So basically the audit went fine, there were a couple of small things but nothing huge.
+    → The audit was largely successful with a few minor issues that did not significantly impact the outcome.
+✔ [formal/good] The report will be ready on Friday.
+    → (no alternative)
+✔ [formal/good] Hi Maria, have you had a chance to review the contract?
+    → (no alternative)
+✔ [formal/good] Please pay the outstanding invoice of $4,200 by the end of the month.
+    → (no alternative)
+✔ [formal/good] Thank you for your help. I will send the updated draft on Thursday.
+    → (no alternative)
+✔ [formal/good] The Q3 summary is available at https://example.com/q3.
+    → (no alternative)
+✔ [informal/good] sounds good 👍 see you at 3
+    → (no alternative)
+✔ [informal/good] @sam left a few comments on the PR, nothing blocking
+    → (no alternative)
+✔ [informal/good] build is green again, thanks for the quick fix!
+    → (no alternative)
+✔ [strictFormal/good] Dear Dr. Patel, thank you for your letter. I will reply in full by Monday.
+    → (no alternative)
+✔ [strictFormal/good] The board will meet on June 12 to approve the annual budget.
+    → (no alternative)
+
+== aure-eval: 30 cases, prompt aure, server http://127.0.0.1:18095
+rejected by validator: 0;  latency p50 / p95: 4218 ms / 7411 ms
+| alternative offered (needs work) | left alone (already good) | facts kept | median length (words) |
+|---|---|---|---|
+| 100% (20/20) | 100% (10/10) | 100% (20/20) | 78% |

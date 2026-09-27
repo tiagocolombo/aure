@@ -1,0 +1,30 @@
+{"mode":"rewrite","tone":"formal","kind":"improve","keep":["Friday"],"text":"I am writing this email in order to let you know that at this point in time the report will not be ready until Friday."}
+{"mode":"rewrite","tone":"formal","kind":"improve","keep":["budget"],"text":"It was decided by the team that the budget would be reviewed by us again next week."}
+{"mode":"rewrite","tone":"formal","kind":"improve","keep":["Maria","contract"],"text":"Maria, I just wanted to reach out and touch base with you regarding the contract, because I was wondering if you had maybe had a chance to look at it yet."}
+{"mode":"rewrite","tone":"formal","kind":"improve","keep":["3 pm","Thursday"],"text":"The meeting that we had planned to have on Thursday at 3 pm is something that we are going to need to move to a different time."}
+{"mode":"rewrite","tone":"formal","kind":"improve","keep":["invoice","$4,200"],"text":"Please be advised that the invoice for $4,200 has not been paid yet, and we would appreciate it if you could make sure it gets paid."}
+{"mode":"rewrite","tone":"formal","kind":"improve","keep":["deadline"],"text":"Due to the fact that the deadline is very close, we need to make a decision about what we are going to do very soon."}
+{"mode":"rewrite","tone":"formal","kind":"improve","keep":["Q3"],"text":"In my opinion I think that the Q3 numbers are basically quite good overall."}
+{"mode":"rewrite","tone":"formal","kind":"improve","keep":["onboarding"],"text":"The onboarding process is a process that takes a long time and it is confusing and new hires often get lost in it."}
+{"mode":"rewrite","tone":"formal","kind":"improve","keep":["John"],"text":"I wanted to ask if it would be possible for you to possibly send me the slides, John, if that is okay with you."}
+{"mode":"rewrite","tone":"formal","kind":"improve","keep":["server","Monday"],"text":"The server went down on Monday and it went down because the disk was full and nobody noticed that the disk was full."}
+{"mode":"rewrite","tone":"informal","kind":"improve","keep":["standup"],"text":"I would like to inform everyone that I will unfortunately be unable to attend the standup today."}
+{"mode":"rewrite","tone":"informal","kind":"improve","keep":["@sam","PR"],"text":"@sam I have completed my review of the PR and I have left a number of comments for your consideration."}
+{"mode":"rewrite","tone":"informal","kind":"improve","keep":["lunch","12:30"],"text":"Would you perhaps be interested in joining us for lunch at 12:30 today, if your schedule permits?"}
+{"mode":"rewrite","tone":"informal","kind":"improve","keep":["build"],"text":"It has come to my attention that the build is currently failing again at the present time."}
+{"mode":"rewrite","tone":"informal","kind":"improve","keep":["#design","mockups"],"text":"The mockups have been uploaded to #design by me so that everyone is able to take a look at them."}
+{"mode":"rewrite","tone":"informal","kind":"improve","keep":["docs"],"text":"Thank you very much for all of your assistance with the docs, it is greatly appreciated by me."}
+{"mode":"rewrite","tone":"strictFormal","kind":"improve","keep":["Friday","proposal"],"text":"Hey, just checking in on the proposal, any chance we get it by Friday?"}
+{"mode":"rewrite","tone":"strictFormal","kind":"improve","keep":["board","June 12"],"text":"Thanks a ton for the heads up, we'll get the stuff ready for the board on June 12."}
+{"mode":"rewrite","tone":"strictFormal","kind":"improve","keep":["Dr. Patel"],"text":"Dr. Patel, sorry but I can't make the call, can we do it some other time?"}
+{"mode":"rewrite","tone":"strictFormal","kind":"improve","keep":["audit"],"text":"So basically the audit went fine, there were a couple of small things but nothing huge."}
+{"mode":"rewrite","tone":"formal","kind":"good","keep":["Friday"],"text":"The report will be ready on Friday."}
+{"mode":"rewrite","tone":"formal","kind":"good","keep":["Maria","contract"],"text":"Hi Maria, have you had a chance to review the contract?"}
+{"mode":"rewrite","tone":"formal","kind":"good","keep":["$4,200"],"text":"Please pay the outstanding invoice of $4,200 by the end of the month."}
+{"mode":"rewrite","tone":"formal","kind":"good","keep":["Thursday"],"text":"Thank you for your help. I will send the updated draft on Thursday."}
+{"mode":"rewrite","tone":"formal","kind":"good","keep":["https://example.com/q3"],"text":"The Q3 summary is available at https://example.com/q3."}
+{"mode":"rewrite","tone":"informal","kind":"good","keep":["👍"],"text":"sounds good 👍 see you at 3"}
+{"mode":"rewrite","tone":"informal","kind":"good","keep":["@sam","PR"],"text":"@sam left a few comments on the PR, nothing blocking"}
+{"mode":"rewrite","tone":"informal","kind":"good","keep":["build"],"text":"build is green again, thanks for the quick fix!"}
+{"mode":"rewrite","tone":"strictFormal","kind":"good","keep":["Dr. Patel"],"text":"Dear Dr. Patel, thank you for your letter. I will reply in full by Monday."}
+{"mode":"rewrite","tone":"strictFormal","kind":"good","keep":["June 12"],"text":"The board will meet on June 12 to approve the annual budget."}

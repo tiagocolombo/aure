@@ -36,13 +36,29 @@ public final class AppState {
 
     // MARK: Settings (persisted in UserDefaults)
 
-    public var tone: Tone { didSet { defaults.set(tone.rawValue, forKey: Keys.tone) } }
-    public var dialect: Dialect { didSet { defaults.set(dialect.rawValue, forKey: Keys.dialect) } }
-    public var selectedModelID: String? { didSet { defaults.set(selectedModelID, forKey: Keys.model) } }
-    public var paused: Bool { didSet { defaults.set(paused, forKey: Keys.paused) } }
+    public var writingSuggestionsEnabled: Bool {
+        didSet {
+            defaults.set(writingSuggestionsEnabled, forKey: Keys.writingSuggestions)
+            coordinator?.invalidateReview()
+        }
+    }
+
+    public var tone: Tone { didSet { defaults.set(tone.rawValue, forKey: Keys.tone); coordinator?.invalidateReview() } }
+    public var dialect: Dialect { didSet { defaults.set(dialect.rawValue, forKey: Keys.dialect); coordinator?.invalidateReview() } }
+    public var selectedModelID: String? { didSet { defaults.set(selectedModelID, forKey: Keys.model); coordinator?.invalidateReview() } }
+    public var paused: Bool { didSet { defaults.set(paused, forKey: Keys.paused); coordinator?.invalidateReview() } }
     public var onboardingDone: Bool { didSet { defaults.set(onboardingDone, forKey: Keys.onboarding) } }
+    /// Suggestion strictness: hide edits the model was less sure about.
+    public var minConfidence: Double {
+        didSet {
+            coordinator?.invalidateReview()
+            defaults.set(minConfidence, forKey: Keys.minConfidence)
+            Task { await correction.setMinConfidence(minConfidence) }
+        }
+    }
     public var toneDescriptions: [Tone: String] {
         didSet {
+            coordinator?.invalidateReview()
             defaults.set(Dictionary(uniqueKeysWithValues: toneDescriptions.map { ($0.key.rawValue, $0.value) }),
                          forKey: Keys.toneDescriptions)
             Task { await pushToneDefinitions() }
@@ -68,17 +84,21 @@ public final class AppState {
     enum Keys {
         static let tone = "tone", dialect = "dialect", model = "selectedModelID", paused = "paused"
         static let onboarding = "onboardingDone", toneDescriptions = "toneDescriptions"
+        static let minConfidence = "minConfidence"
+        static let writingSuggestions = "writingSuggestionsEnabled"
     }
 
     public init(defaults: UserDefaults = .standard, store: ModelStore = ModelStore()) {
         self.defaults = defaults
         self.store = store
+        writingSuggestionsEnabled = defaults.object(forKey: Keys.writingSuggestions) as? Bool ?? true
         catalog = ModelCatalog.load()
         tone = Tone(rawValue: defaults.string(forKey: Keys.tone) ?? "") ?? .formal
         dialect = Dialect(rawValue: defaults.string(forKey: Keys.dialect) ?? "") ?? .enUS
         selectedModelID = defaults.string(forKey: Keys.model)
         paused = defaults.bool(forKey: Keys.paused)
         onboardingDone = defaults.bool(forKey: Keys.onboarding)
+        minConfidence = defaults.object(forKey: Keys.minConfidence) as? Double ?? Strictness.balanced.threshold
         let saved = defaults.dictionary(forKey: Keys.toneDescriptions) as? [String: String] ?? [:]
         toneDescriptions = Dictionary(uniqueKeysWithValues: Tone.allCases.map {
             ($0, saved[$0.rawValue] ?? ToneDefinition.default($0).description)
@@ -127,8 +147,10 @@ public final class AppState {
         }
         engine = .loading(model.name)
         do {
-            let provider = try await server.start(.init(modelPath: store.localURL(for: model)))
+            let slots = hardware.recommendedParallelSlots
+            let provider = try await server.start(.init(modelPath: store.localURL(for: model), parallel: slots))
             await correction.setProvider(provider)
+            await correction.setMaxParallel(slots)
             engine = .ready(model.name)
             // Warm up so the first real check is fast.
             _ = try? await correction.check(CheckRequest(text: "This are a warm up.", tone: .formal, dialect: dialect))
@@ -149,6 +171,7 @@ public final class AppState {
     }
 
     private func pushToneDefinitions() async {
+        await correction.setMinConfidence(minConfidence)
         for (tone, text) in toneDescriptions {
             await correction.setToneDefinition(ToneDefinition(tone: tone, description: text))
         }
@@ -160,6 +183,19 @@ public final class AppState {
         let r = try await correction.check(CheckRequest(text: text, tone: tone ?? self.tone, mode: mode, dialect: dialect))
         lastResult = r
         return r
+    }
+
+    /// One optional model alternative, never an automatic replacement. The cap keeps
+    /// background style work bounded; long documents still receive grammar checks.
+    public func suggestWriting(_ text: String, tone: Tone? = nil) async throws -> WritingSuggestion? {
+        guard writingSuggestionsEnabled, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              text.utf16.count <= 1200 else { return nil }
+        try Task.checkCancellation()
+        let targetTone = tone ?? self.tone
+        let rewrite = try await correction.check(CheckRequest(text: text, tone: targetTone, mode: .rewrite, dialect: dialect))
+        try Task.checkCancellation()
+        guard writingSuggestionsEnabled else { return nil }
+        return WritingSuggestion(original: text, replacement: rewrite.corrected, tone: targetTone)
     }
 
     // MARK: Downloads
@@ -214,5 +250,40 @@ public final class AppState {
         set {
             if newValue { try? SMAppService.mainApp.register() } else { try? SMAppService.mainApp.unregister() }
         }
+    }
+}
+
+/// User-facing presets for `minConfidence` (Settings → General).
+public enum Strictness: String, CaseIterable, Identifiable {
+    case all, balanced, onlySure
+
+    public var id: String { rawValue }
+
+    public var threshold: Double {
+        switch self {
+        case .all: 0
+        case .balanced: 0.7
+        case .onlySure: 0.9
+        }
+    }
+
+    public var title: String {
+        switch self {
+        case .all: "Show everything"
+        case .balanced: "Balanced"
+        case .onlySure: "Only when sure"
+        }
+    }
+
+    public var help: String {
+        switch self {
+        case .all: "Show every change the model makes, even ones it was unsure about."
+        case .balanced: "Hide changes the model was less than 70% sure about."
+        case .onlySure: "Only show changes the model was at least 90% sure about. Fewer, safer suggestions."
+        }
+    }
+
+    public static func nearest(_ t: Double) -> Strictness {
+        allCases.min { abs($0.threshold - t) < abs($1.threshold - t) } ?? .balanced
     }
 }

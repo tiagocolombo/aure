@@ -45,10 +45,23 @@ public struct ToneDefinition: Codable, Sendable, Equatable {
             ToneDefinition(tone: tone, description: """
             Strictly formal register for executives, legal or official correspondence. No \
             contractions, no colloquialisms, no emoji, no exclamation marks. Precise vocabulary \
-            and complete salutations and sign-offs.
+            and formal salutations and sign-offs where the writer used them.
             """)
         }
     }
+}
+
+/// Instruction wording for `correct` mode. Compared in docs/MODEL_EVAL.md.
+public enum PromptStyle: String, Sendable, CaseIterable {
+    /// Aure's own proofreading prompt.
+    case aure
+    /// Lines from the prompt Grammarly researchers optimized for GPT-4o
+    /// (APIO, Chernodub et al., RANLP 2025, arXiv:2508.09378).
+    case grammarlyAPIO
+    /// Minimal-edit prompt with the 25 ERRANT error types, as optimized for
+    /// Qwen3-8B by Karpo and Chernodub (EMNLP 2026 Findings, arXiv:2609.10810).
+    /// Source: github.com/katerynkarpo/llm-en-gec (MIT License).
+    case minimalTaxonomy
 }
 
 public struct Prompt: Sendable, Equatable {
@@ -83,12 +96,26 @@ public enum PromptBuilder {
     public static func build(_ req: CheckRequest,
                              toneDefinition: ToneDefinition? = nil,
                              style: StyleContext = .empty,
+                             promptStyle: PromptStyle = .aure,
                              disableThinking: Bool = true) -> Prompt {
         let tone = toneDefinition ?? .default(req.tone)
         var s = "You are Aure, a precise English copy editor.\n"
 
-        switch req.mode {
-        case .correct:
+        switch (req.mode, promptStyle) {
+        case (.correct, .grammarlyAPIO):
+            s += """
+            *Given a text with grammatical errors, identify and correct the mistakes to produce a \
+            grammatically accurate version of the text.
+            *Ensure that the corrected text matches the original phrasing, structure, and punctuation \
+            as closely as possible while correcting grammatical errors, with a priority on minimizing \
+            the number of differing words.
+            *Identify any grammatical, spelling or word errors in the provided text and correct them, \
+            ensuring the text is grammatically accurate. If the text is already correct, leave it unchanged.
+
+            """
+        case (.correct, .minimalTaxonomy):
+            s += Self.minimalTaxonomyPrompt + "\n\n"
+        case (.correct, .aure):
             s += """
             Task: proofread the user's text and fix every error: spelling, grammar, punctuation \
             and wrong words. Read each word in context. Pay special attention to commonly confused \
@@ -99,10 +126,16 @@ public enum PromptBuilder {
             repeat it exactly.
 
             """
-        case .rewrite:
+        case (.rewrite, _):
             s += """
             Task: rewrite the user's text in the target tone while keeping its meaning, facts, \
-            names and intent. Fix all errors. Keep roughly the same length.
+            names and intent. Fix all errors. Make it clearer and more direct: cut filler and \
+            redundant words, prefer the active voice, and replace wordy phrases with plain ones. \
+            Every word of the tone must fit it, so remove casual words from formal text and stiff \
+            words from informal text. Never add facts, reasons, excuses, names or placeholders \
+            like [Name] that the writer did not write, and keep the same tense and commitments. \
+            Do not swap words for synonyms just to be different. If the text is already clear \
+            and fits the tone, repeat it exactly.
 
             """
         }
@@ -145,6 +178,54 @@ public enum PromptBuilder {
                       maxTokens: min(2048, approxTokens * 2 + 64))
     }
 
+    /// Karpo & Chernodub, A.6.1 (MIT License, github.com/katerynkarpo/llm-en-gec).
+    /// Only change: the SPELL example "color→colour" is dropped, because the
+    /// dialect note decides US vs Canadian spelling.
+    static let minimalTaxonomyPrompt = """
+    You are a grammatical error correction system. Make MINIMAL, PRECISE edits to fix errors. DO NOT rewrite or paraphrase. Only fix clear grammatical and spelling errors.
+
+    Focus on these 25 error types:
+
+    WORD-LEVEL ERRORS:
+    1. ADJ: Wrong adjective choice (big→wide)
+    2. ADJ:FORM: Adjective form errors - comparatives/superlatives (goodest→best, more easy→easier)
+    3. ADV: Wrong adverb choice (speedily→quickly)
+    4. CONJ: Wrong conjunction (and→but)
+    5. CONTR: Contraction errors (n't→not)
+    6. DET: Wrong/missing/extra determiner (the→a, ∅→the, the→∅)
+    7. NOUN: Wrong noun choice (person→people)
+    8. NOUN:INFL: Count-mass noun errors (informations→information)
+    9. NOUN:NUM: Noun number agreement (cat→cats)
+    10. NOUN:POSS: Noun possessive errors (friends→friend's)
+    11. PART: Wrong particle (look in→look at)
+    12. PREP: Wrong/missing/extra preposition (of→at, ∅→at, at→∅)
+    13. PRON: Wrong pronoun (ours→ourselves)
+    14. VERB: Wrong verb choice (ambulate→walk)
+    15. VERB:FORM: Verb form errors - infinitive/gerund/participle (to eat→eating, dancing→danced)
+    16. VERB:INFL: Verb inflection errors (getted→got, fliped→flipped)
+    17. VERB:SVA: Subject-verb agreement ((He) have→(He) has)
+    18. VERB:TENSE: Verb tense errors including modals and passive (eats→ate, eats→can eat, eats→was eaten)
+
+    MECHANICAL ERRORS:
+    19. ORTH: Orthography - capitalization/whitespace (Bestfriend→best friend, THIS→this)
+    20. PUNCT: Punctuation errors (!→., missing commas, extra periods)
+    21. SPELL: Spelling errors (genectic→genetic)
+    22. WO: Word order errors (only can→can only)
+
+    OTHER:
+    23. MORPH: Morphology - same lemma, different part of speech (quick[adj]→quickly[adv])
+    24. OTHER: Complex errors requiring minimal paraphrasing
+    25. UNK: Leave unchanged if error is unclear
+
+    RULES:
+    - Make the SMALLEST possible edit to fix each error
+    - Change only what is grammatically or orthographically wrong
+    - Preserve the original meaning and style
+    - Do NOT improve fluency beyond fixing errors
+    - If no errors exist, return the original sentence unchanged
+    - Output plain text only: NEVER use Markdown or any markup in the output
+    """
+
     static func fewShot(_ mode: CheckMode, _ tone: Tone) -> [(text: String, corrected: String)] {
         let raw: String
         switch (mode, tone) {
@@ -174,16 +255,30 @@ public enum PromptBuilder {
             raw = """
             Text: I would like to inform you that the meeting has been moved to Friday.
             {"corrected":"Heads up, the meeting moved to Friday.","edits":[{"from":"I would like to inform you that the meeting has been moved","to":"Heads up, the meeting moved","category":"tone","why":"More casual phrasing"}]}
+            Text: ok, pushed the fix 👍 can you rerun the tests?
+            {"corrected":"ok, pushed the fix 👍 can you rerun the tests?","edits":[]}
+            Text: The document has been reviewed by me and a small number of changes have been made.
+            {"corrected":"I reviewed the doc and made a few changes.","edits":[]}
             """
         case (.rewrite, .formal):
             raw = """
             Text: hey can u send me the numbers asap, need them for the call
             {"corrected":"Hi, could you please send me the numbers as soon as possible? I need them for the call.","edits":[{"from":"hey can u send me the numbers asap, need them","to":"Hi, could you please send me the numbers as soon as possible? I need them","category":"tone","why":"Professional wording"}]}
+            Text: Thank you for the update. I will review the draft tomorrow.
+            {"corrected":"Thank you for the update. I will review the draft tomorrow.","edits":[]}
+            Text: At this point in time, it was decided by the committee that the launch would be delayed due to the fact that testing is not finished.
+            {"corrected":"The committee decided to delay the launch because testing is not finished.","edits":[]}
             """
         case (.rewrite, .strictFormal):
             raw = """
             Text: Hi Tom, thanks! We can't make it Monday, can we do Tuesday?
             {"corrected":"Dear Tom, thank you. Unfortunately, we are unable to attend on Monday. Would Tuesday be convenient?","edits":[{"from":"Hi Tom, thanks! We can't make it Monday, can we do Tuesday?","to":"Dear Tom, thank you. Unfortunately, we are unable to attend on Monday. Would Tuesday be convenient?","category":"tone","why":"Strictly formal register"}]}
+            Text: Dear Ms. Chen, thank you for your letter. We will send our response by Friday.
+            {"corrected":"Dear Ms. Chen, thank you for your letter. We will send our response by Friday.","edits":[]}
+            Text: just checking if the contract is signed yet, sorry to bug you
+            {"corrected":"I would be grateful to know whether the contract has been signed.","edits":[]}
+            Text: hey, any update on the invoice? need it for the audit
+            {"corrected":"Could you please provide an update on the invoice? It is required for the audit.","edits":[]}
             """
         }
         var out: [(text: String, corrected: String)] = []

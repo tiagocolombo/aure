@@ -59,8 +59,15 @@ struct IssueRow: View {
                     Text(issue.replacement.isEmpty ? "(remove)" : issue.replacement.trimmingCharacters(in: .whitespaces))
                         .fontWeight(.semibold)
                 }
-                Text("\(issue.category.displayName) · \(issue.explanation)")
-                    .font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Text("\(issue.category.displayName) · \(issue.explanation)")
+                    if issue.confidence < 0.9 {
+                        Text("· \(Int((issue.confidence * 100).rounded()))% sure")
+                            .foregroundStyle(.orange)
+                            .help("The model was not fully sure about this change.")
+                    }
+                }
+                .font(.caption).foregroundStyle(.secondary)
             }
             Spacer(minLength: 4)
             if let onAccept {

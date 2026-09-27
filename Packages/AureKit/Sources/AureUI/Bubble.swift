@@ -176,6 +176,8 @@ struct BubbleView: View {
         switch c.status {
         case .checking:
             ProgressView().controlSize(.mini).tint(.white)
+        case .suggestions(let n):
+            Text("\(min(n, 99))").font(.system(size: 11, weight: .bold)).foregroundStyle(.black)
         case .issues(let n):
             Text("\(min(n, 99))").font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
         case .clean:
@@ -190,6 +192,7 @@ struct BubbleView: View {
     var fill: Color {
         switch c.status {
         case .issues: Color(red: 0.89, green: 0.23, blue: 0.23)
+        case .suggestions: Color.yellow
         case .clean: Color(red: 0.16, green: 0.68, blue: 0.38)
         case .checking: Color.gray
         case .error: Color.orange
@@ -199,7 +202,8 @@ struct BubbleView: View {
 
     var help: String {
         switch c.status {
-        case .issues(let n): "Aure found \(n) suggestion\(n == 1 ? "" : "s"). Click to review."
+        case .issues(let n): "Aure found \(n) error\(n == 1 ? "" : "s"). Click to review."
+        case .suggestions(let n): "Aure: \(n) optional writing suggestion\(n == 1 ? "" : "s"). Click to review."
         case .clean: "Aure: looks good"
         case .checking: "Aure is checking…"
         case .error(let e): "Aure: \(e)"
@@ -217,16 +221,16 @@ struct SuggestionCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Image(systemName: "text.badge.checkmark").foregroundStyle(.tint)
+                AureLogo(size: 20)
                 Text(title).font(.headline)
                 Spacer()
                 Menu {
                     ForEach(Tone.allCases) { t in
-                        Button("Rewrite as \(t.displayName)") { close(); Task { await c.rewrite(tone: t) } }
+                        Button("Preview as \(t.displayName)") { Task { await c.rewrite(tone: t) } }
                     }
                 } label: { Image(systemName: "wand.and.stars") }
                     .menuStyle(.borderlessButton).fixedSize().help("Rewrite in a tone")
-                    .disabled(c.result == nil)
+                    .disabled(c.result == nil || c.suggestingWriting || !app.writingSuggestionsEnabled || !c.dismissed.isEmpty)
                 Button(action: close) { Image(systemName: "xmark") }.buttonStyle(.borderless).help("Close (Esc)")
             }
 
@@ -238,8 +242,9 @@ struct SuggestionCard: View {
             default:
                 if let r = c.result {
                     if c.visibleIssues.isEmpty {
-                        Label("No issues found.", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                        Label("No grammar errors found.", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                     } else {
+                        Text("Grammar & spelling").font(.subheadline.bold()).foregroundStyle(.red)
                         ScrollView {
                             DiffText(original: r.request.text, issues: c.visibleIssues)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -265,11 +270,12 @@ struct SuggestionCard: View {
                                 NSPasteboard.general.clearContents()
                                 NSPasteboard.general.setString(corrected(r), forType: .string)
                             }
-                            Button("Replace all") { close(); Task { await c.replaceAll() } }
+                            Button("Apply fixes") { close(); Task { await c.replaceAll() } }
                                 .buttonStyle(.borderedProminent)
                                 .keyboardShortcut(.defaultAction)
                         }
                     }
+                    writingSection
                 }
             }
         }
@@ -279,9 +285,38 @@ struct SuggestionCard: View {
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.separator))
     }
 
+    @ViewBuilder var writingSection: some View {
+        if let suggestion = c.writingSuggestion {
+            Divider()
+            Label("Better writing · Optional", systemImage: "sparkles").font(.subheadline.bold())
+                .foregroundStyle(.orange)
+            Text("\(suggestion.tone.displayName) alternative. Review before applying.")
+                .font(.caption).foregroundStyle(.secondary)
+            ScrollView {
+                DiffText(original: suggestion.original,
+                         issues: IssueBuilder.issues(original: suggestion.original, corrected: suggestion.replacement, edits: []))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }.frame(maxHeight: 110)
+            if c.result?.hasIssues == true {
+                Text("Applying this alternative also includes the grammar fixes above.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            HStack {
+                Button("Dismiss") { c.dismissWritingSuggestion() }
+                Spacer()
+                Button("Apply alternative") { close(); Task { await c.applyWritingSuggestion(suggestion) } }
+            }
+        } else if c.suggestingWriting {
+            HStack { ProgressView().controlSize(.mini); Text("Looking for an optional improvement…").font(.caption) }
+        } else if let error = c.writingError {
+            Text(error).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
     var title: String {
         switch c.status {
-        case .issues(let n): "\(n) suggestion\(n == 1 ? "" : "s")"
+        case .issues(let n): "\(n) error\(n == 1 ? "" : "s")"
+        case .suggestions: "Writing suggestion"
         case .clean: "Looks good"
         case .checking: "Checking"
         default: "Aure"
