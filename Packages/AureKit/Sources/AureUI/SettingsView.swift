@@ -10,6 +10,7 @@ struct SettingsView: View {
             ModelsSettings().tabItem { Label("Models", systemImage: "cpu") }
             ToneSettings().tabItem { Label("Voice & Tone", systemImage: "text.quote") }
             PrivacySettings().tabItem { Label("Privacy", systemImage: "lock") }
+            AboutView().tabItem { Label("About", systemImage: "info.circle") }
         }
         .frame(width: 620, height: 500)
     }
@@ -28,13 +29,21 @@ struct GeneralSettings: View {
             Picker("English", selection: $app.dialect) {
                 ForEach(Dialect.allCases) { Text($0.displayName).tag($0) }
             }
+            Picker("Suggestions", selection: Binding(get: { Strictness.nearest(app.minConfidence) },
+                                                     set: { app.minConfidence = $0.threshold })) {
+                ForEach(Strictness.allCases) { Text($0.title).tag($0) }
+            }
+            Text(Strictness.nearest(app.minConfidence).help).font(.caption).foregroundStyle(.secondary)
+            Toggle("Optional better-writing suggestions", isOn: $app.writingSuggestionsEnabled)
+            Text("After grammar checks, offer one model-generated alternative for short text. Nothing changes until you apply it.")
+                .font(.caption).foregroundStyle(.secondary)
             Toggle("Pause checking", isOn: $app.paused)
             Toggle("Launch Aure at login", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { _, v in app.launchAtLogin = v }
             LabeledContent("Aure Pad shortcut", value: "⌥⌘P (from the menu bar)")
             Section("Checking in other apps") {
                 AccessibilityStatusView()
-                Text("A small bubble appears in the corner of the field you are typing in: green when it looks good, red with the number of suggestions. Click it to review and replace. Password fields, terminals, code editors and password managers are never read.")
+                Text("A small bubble appears in the corner of the field you are typing in: green when it looks good, yellow for optional writing improvements, red for errors (which take priority). Click it to review and replace. Password fields, terminals, code editors and password managers are never read.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

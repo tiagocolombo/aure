@@ -49,6 +49,21 @@ enum SelfTest {
             } catch {
                 print("[rewrite strictFormal] error: \(error.localizedDescription)")
             }
+            // The bubble's "Better writing · Optional" path: grammar first, then one alternative.
+            let wordy = "It was decided by the team that the budget would be reviewed by us again next week."
+            do {
+                let grammar = try await state.check(wordy, tone: .formal)
+                let started = Date()
+                if let s = try await state.suggestWriting(grammar.corrected, tone: .formal) {
+                    print("[better writing formal] \(Int(Date().timeIntervalSince(started) * 1000)) ms: \(s.replacement)")
+                } else {
+                    print("[better writing formal] no alternative offered"
+                          + (state.writingSuggestionsEnabled ? "" : " (disabled in Settings)"))
+                }
+            } catch {
+                print("[better writing formal] error: \(error.localizedDescription)")
+                failed = true
+            }
             await state.stopEngine()
             exit(failed ? 1 : 0)
         }
