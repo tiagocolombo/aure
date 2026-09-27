@@ -1,0 +1,54 @@
+[
+  {
+    "id": "qwen3-4b",
+    "name": "Qwen3 4B",
+    "repo": "Qwen/Qwen3-4B-GGUF",
+    "file": "Qwen3-4B-Q4_K_M.gguf",
+    "family": "qwen3",
+    "summary": "Most accurate: fixed 90% of test errors. About 1\u20132 s per check on Intel, faster on Apple Silicon.",
+    "minRAMGB": 8,
+    "license": "Apache-2.0",
+    "bytes": 2497280256,
+    "sha256": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+    "url": "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf?download=true"
+  },
+  {
+    "id": "qwen3-1.7b",
+    "name": "Qwen3 1.7B",
+    "repo": "bartowski/Qwen_Qwen3-1.7B-GGUF",
+    "file": "Qwen_Qwen3-1.7B-Q4_K_M.gguf",
+    "family": "qwen3",
+    "summary": "Faster and smaller: fixed 84% of test errors. Good for 8 GB Macs.",
+    "minRAMGB": 4,
+    "license": "Apache-2.0",
+    "bytes": 1282439584,
+    "sha256": "72c5c3cb38fa32d5256e2fe30d03e7a64c6c79e668ad84057e3bd66e250b24fb",
+    "url": "https://huggingface.co/bartowski/Qwen_Qwen3-1.7B-GGUF/resolve/main/Qwen_Qwen3-1.7B-Q4_K_M.gguf?download=true"
+  },
+  {
+    "id": "qwen3.5-4b",
+    "name": "Qwen3.5 4B",
+    "repo": "bartowski/Qwen_Qwen3.5-4B-GGUF",
+    "file": "Qwen_Qwen3.5-4B-Q4_K_M.gguf",
+    "family": "qwen3",
+    "summary": "Newer model, similar accuracy to Qwen3 4B (87%) but slower.",
+    "minRAMGB": 8,
+    "license": "Apache-2.0",
+    "bytes": 3013027808,
+    "sha256": "13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983",
+    "url": "https://huggingface.co/bartowski/Qwen_Qwen3.5-4B-GGUF/resolve/main/Qwen_Qwen3.5-4B-Q4_K_M.gguf?download=true"
+  },
+  {
+    "id": "qwen3-0.6b",
+    "name": "Qwen3 0.6B",
+    "repo": "bartowski/Qwen_Qwen3-0.6B-GGUF",
+    "file": "Qwen_Qwen3-0.6B-Q4_K_M.gguf",
+    "family": "qwen3",
+    "summary": "Fastest, but basic: misses many errors (45%). Only for very old or low-memory Macs.",
+    "minRAMGB": 4,
+    "license": "Apache-2.0",
+    "bytes": 484220320,
+    "sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14",
+    "url": "https://huggingface.co/bartowski/Qwen_Qwen3-0.6B-GGUF/resolve/main/Qwen_Qwen3-0.6B-Q4_K_M.gguf?download=true"
+  }
+]
