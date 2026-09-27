@@ -65,7 +65,10 @@ chmod +x "$out/llama-server"
 echo "$tag" > "$out/VERSION"
 
 echo "==> $(apple lipo -archs "$out/llama-server") -> $out/llama-server"
-if apple otool -L "$out/llama-server" | tail -n +2 | grep -vE '^\s*(/usr/lib/|/System/Library/)'; then
+# Check every slice. otool prints a "<file> (architecture X):" header per slice
+# (on Apple Silicon hosts even without -arch all), so only inspect the indented
+# library lines, never the headers.
+if apple otool -arch all -L "$out/llama-server" | grep -E '^[[:space:]]' | grep -vE '^[[:space:]]*(/usr/lib/|/System/Library/)'; then
   echo "error: llama-server links non-system libraries (see above)"; exit 1
 fi
 "$out/llama-server" --version 2>&1 | head -2 || true
