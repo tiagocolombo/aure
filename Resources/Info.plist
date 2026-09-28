@@ -15,7 +15,6 @@
     <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Aure contributors. MIT License.</string>
-    <key>NSAppleEventsUsageDescription</key><string>Aure uses this to insert corrected text into the app you are typing in.</string>
     <!-- Sparkle updates. The feed always points at the newest GitHub release;
          SUPublicEDKey is written by scripts/setup-release-secrets.sh. Sparkle
          asks before the first automatic check (no SUEnableAutomaticChecks). -->

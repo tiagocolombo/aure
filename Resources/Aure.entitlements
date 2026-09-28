@@ -5,8 +5,9 @@
     <!-- Not sandboxed: the Accessibility API and helper processes (llama-server)
          are incompatible with the App Sandbox. Distributed as a DMG. -->
     <key>com.apple.security.app-sandbox</key><false/>
-    <key>com.apple.security.automation.apple-events</key><true/>
-    <!-- Library validation only accepts code from the app's own Apple team.
+    <!-- Least privilege: no Apple Events entitlement, as Aure edits other apps
+         through Accessibility only.
+         Library validation only accepts code from the app's own Apple team.
          Self-signed ("Aure Local") and ad-hoc builds have no team ID, so without
          this the hardened runtime refuses to load the bundled Sparkle.framework
          (the app aborts at launch). DYLD_* environment injection stays blocked.

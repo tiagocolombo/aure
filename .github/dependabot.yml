@@ -1,5 +1,5 @@
-# Keep GitHub Actions pinned to up-to-date commit SHAs. The app has no
-# third-party Swift packages yet; add a "swift" entry when it does.
+# Keep GitHub Actions pinned to up-to-date commit SHAs, and Sparkle (the only
+# Swift package, used for in-app updates) current.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -11,3 +11,9 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: "ci"
+  - package-ecosystem: swift
+    directory: /Packages/AureKit
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "fix(deps)"
