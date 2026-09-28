@@ -104,14 +104,19 @@ public struct CheckResult: Codable, Sendable, Equatable {
     public var corrected: String
     public var issues: [Issue]
     public var latencyMs: Int
+    /// Rewrite mode only: the model judged the original to read like generic
+    /// AI-generated writing (see `AIStyleMarker`).
+    public var soundsAIWritten: Bool
 
     public var hasIssues: Bool { !issues.isEmpty }
 
-    public init(request: CheckRequest, corrected: String, issues: [Issue], latencyMs: Int) {
+    public init(request: CheckRequest, corrected: String, issues: [Issue], latencyMs: Int,
+                soundsAIWritten: Bool = false) {
         self.request = request
         self.corrected = corrected
         self.issues = issues
         self.latencyMs = latencyMs
+        self.soundsAIWritten = soundsAIWritten
     }
 }
 

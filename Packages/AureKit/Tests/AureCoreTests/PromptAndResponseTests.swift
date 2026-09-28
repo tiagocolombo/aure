@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import AureCore
 
@@ -35,6 +36,42 @@ import Testing
     @Test func thinkingCanBeLeftOn() {
         let p = PromptBuilder.build(CheckRequest(text: "x", tone: .formal), disableThinking: false)
         #expect(!p.user.contains("/no_think"))
+    }
+
+    @Test(arguments: Tone.allCases)
+    func rewritesAskForPlainWordsWithoutDashes(tone: Tone) {
+        let rewrite = PromptBuilder.build(CheckRequest(text: "x", tone: tone, mode: .rewrite))
+        let correct = PromptBuilder.build(CheckRequest(text: "x", tone: tone, mode: .correct))
+        #expect(rewrite.system.contains("Never use em dashes"))
+        #expect(!correct.system.contains("Never use em dashes"))
+        #expect(!rewrite.system.contains("—"))
+        #expect(rewrite.examples.allSatisfy { !$0.assistant.contains("—") })
+    }
+}
+
+@Suite struct AIStyleCheckTests {
+    @Test func promptIsAOneWordVerdictWithBothAnswersShown() {
+        let p = AIStyleCheck.prompt(for: "hello")
+        #expect(p.user.hasPrefix("hello"))
+        #expect(p.temperature == 0)
+        #expect(p.maxTokens <= 2)
+        #expect(Set(p.examples.map(\.assistant)) == ["yes", "no"])
+    }
+
+    private func token(_ text: String, _ p: Double, top: [(String, Double)]) -> TokenLogprob {
+        TokenLogprob(bytes: Array(text.utf8), logprob: log(p),
+                     top: top.map { .init(bytes: Array($0.0.utf8), logprob: log($0.1)) })
+    }
+
+    @Test func readsTheVerdictFromTokenProbabilities() {
+        #expect(AIStyleCheck.isAIStyle(answer: "no", tokens: [token("no", 0.45, top: [("yes", 0.55), ("no", 0.45)])]))
+        #expect(!AIStyleCheck.isAIStyle(answer: "yes", tokens: [token("yes", 0.3, top: [(" No", 0.7)])]))
+    }
+
+    @Test func fallsBackToTheAnswerText() {
+        #expect(AIStyleCheck.isAIStyle(answer: " Yes.", tokens: []))
+        #expect(!AIStyleCheck.isAIStyle(answer: "no", tokens: []))
+        #expect(!AIStyleCheck.isAIStyle(answer: "maybe", tokens: [token("maybe", 0.9, top: [])]))
     }
 }
 

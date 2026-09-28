@@ -7,8 +7,10 @@ public struct WritingSuggestion: Equatable, Sendable, Identifiable {
     public let original: String
     public let replacement: String
     public let tone: Tone
+    /// The model judged the original to read like generic AI-generated writing.
+    public let soundsAIWritten: Bool
 
-    public init?(original: String, replacement: String, tone: Tone) {
+    public init?(original: String, replacement: String, tone: Tone, soundsAIWritten: Bool = false) {
         // Presentation filtering only, never a grammar or rewrite rule engine.
         func words(_ text: String) -> [String] {
             text.lowercased().split { !$0.isLetter && !$0.isNumber }.map(String.init)
@@ -18,5 +20,6 @@ public struct WritingSuggestion: Equatable, Sendable, Identifiable {
         self.original = original
         self.replacement = replacement
         self.tone = tone
+        self.soundsAIWritten = soundsAIWritten
     }
 }

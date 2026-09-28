@@ -38,6 +38,13 @@ public struct LlamaServerProvider: LLMProvider {
             body["logprobs"] = true
             body["top_logprobs"] = params.topLogprobs
         }
+        if !params.banned.isEmpty {
+            var bias: [String: Double] = [:]
+            for s in params.banned {
+                if let id = await singleToken(s) { bias[String(id)] = -100 }
+            }
+            if !bias.isEmpty { body["logit_bias"] = bias }
+        }
         if let jsonSchema, let schema = try? JSONSerialization.jsonObject(with: jsonSchema) {
             body["response_format"] = ["type": "json_schema", "json_schema": ["name": "aure", "schema": schema]]
         }
@@ -85,4 +92,32 @@ public struct LlamaServerProvider: LLMProvider {
         }
         return LLMCompletion(text: content, tokens: tokens)
     }
+
+    private static let tokenIDs = TokenIDCache()
+
+    /// The token id when `text` is exactly one token for the loaded model. A string
+    /// split into byte tokens is never banned: those bytes are shared by other
+    /// characters (curly quotes, ellipses).
+    func singleToken(_ text: String) async -> Int? {
+        let key = baseURL.absoluteString + "\u{0}" + text
+        if let cached = await Self.tokenIDs.get(key) { return cached }
+        var req = URLRequest(url: baseURL.appendingPathComponent("tokenize"))
+        req.httpMethod = "POST"
+        req.timeoutInterval = 10
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let apiKey { req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization") }
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["content": text])
+        struct Tokens: Decodable { var tokens: [Int] }
+        guard let (data, _) = try? await session.data(for: req),
+              let tokens = try? JSONDecoder().decode(Tokens.self, from: data).tokens else { return nil }
+        let id = tokens.count == 1 ? tokens[0] : nil
+        await Self.tokenIDs.set(key, id)
+        return id
+    }
+}
+
+private actor TokenIDCache {
+    private var ids: [String: Int?] = [:]
+    func get(_ key: String) -> Int?? { ids[key] }
+    func set(_ key: String, _ id: Int?) { ids[key] = id }
 }

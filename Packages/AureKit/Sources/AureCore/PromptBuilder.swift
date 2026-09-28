@@ -136,18 +136,29 @@ public enum PromptBuilder {
             like [Name] that the writer did not write, and keep the same tense and commitments. \
             Do not swap words for synonyms just to be different. If the text is already clear \
             and fits the tone, repeat it exactly.
+            Write like a person, not a chatbot: use plain everyday words instead of jargon and \
+            buzzwords (for example leverage, seamless, robust, delve, synergy, landscape), and \
+            cut hype and filler openers such as "Great question" or "I hope this finds you well".
 
             """
         }
 
-        s += "Target tone — \(tone.tone.displayName): \(tone.description)\n"
+        s += "Target tone: \(tone.tone.displayName). \(tone.description)\n"
         s += dialectNote(req.dialect) + "\n"
 
+        // Em dashes are also blocked during generation (AIStyleCheck.bannedDashes);
+        // the rule tells the model what to use instead.
+        let replyRules = req.mode == .rewrite
+            ? """
+              - Never use em dashes. Use a comma, a period or parentheses instead.
+              - Reply with the rewritten text only: no quotes, labels, explanations or notes.
+              """
+            : "- Reply with the corrected text only: no quotes, labels, explanations or notes."
         s += """
         Rules:
         - Keep line breaks, lists, URLs, email addresses, @mentions, #channels, `code`, numbers and emoji exactly as written.
         - Keep names and technical terms. Do not add greetings, sign-offs or new content.
-        - Reply with the corrected text only: no quotes, labels, explanations or notes.
+        \(replyRules)
 
         """
 
@@ -259,6 +270,10 @@ public enum PromptBuilder {
             {"corrected":"ok, pushed the fix 👍 can you rerun the tests?","edits":[]}
             Text: The document has been reviewed by me and a small number of changes have been made.
             {"corrected":"I reviewed the doc and made a few changes.","edits":[]}
+            Text: Great question — let's dive in! We're excited to leverage our robust new tool to seamlessly streamline your workflow.
+            {"corrected":"Good question! Our new tool should make your work a lot easier.","edits":[]}
+            Text: Thrilled to share that I've embarked on an exciting new chapter — truly grateful for this incredible journey!
+            {"corrected":"Some news: I'm starting something new, and I'm really grateful.","edits":[]}
             """
         case (.rewrite, .formal):
             raw = """
@@ -268,6 +283,10 @@ public enum PromptBuilder {
             {"corrected":"Thank you for the update. I will review the draft tomorrow.","edits":[]}
             Text: At this point in time, it was decided by the committee that the launch would be delayed due to the fact that testing is not finished.
             {"corrected":"The committee decided to delay the launch because testing is not finished.","edits":[]}
+            Text: In today's fast-paced landscape, it's worth noting that our team has delved deep into the data — and the results are truly transformative.
+            {"corrected":"Our team has studied the data closely, and the results are significant.","edits":[]}
+            Text: Our solution empowers stakeholders to navigate the ever-evolving complexities of compliance — ensuring peace of mind at every step.
+            {"corrected":"Our product helps teams keep up with changing compliance rules.","edits":[]}
             """
         case (.rewrite, .strictFormal):
             raw = """
@@ -279,6 +298,10 @@ public enum PromptBuilder {
             {"corrected":"I would be grateful to know whether the contract has been signed.","edits":[]}
             Text: hey, any update on the invoice? need it for the audit
             {"corrected":"Could you please provide an update on the invoice? It is required for the audit.","edits":[]}
+            Text: I hope this email finds you well! I wanted to reach out to underscore our commitment to fostering a seamless, synergistic partnership — one that truly moves the needle.
+            {"corrected":"I am writing to confirm our commitment to a strong and effective partnership.","edits":[]}
+            Text: It is important to note that this initiative represents a paradigm shift — a testament to our unwavering dedication to excellence.
+            {"corrected":"This initiative is a significant change and reflects our commitment to quality.","edits":[]}
             """
         }
         var out: [(text: String, corrected: String)] = []

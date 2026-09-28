@@ -106,6 +106,10 @@ struct PadView: View {
                 Text(visibleIssues.isEmpty ? "Looks good" : "\(visibleIssues.count) suggestion\(visibleIssues.count == 1 ? "" : "s")")
                     .font(.headline)
                 Text("\(r.latencyMs) ms").font(.caption).foregroundStyle(.tertiary)
+                if r.soundsAIWritten {
+                    Label("Sounded AI-written; rewritten in plainer words", systemImage: "person.wave.2")
+                        .font(.caption).foregroundStyle(.orange)
+                }
                 Spacer()
                 if !visibleIssues.isEmpty {
                     Button("Replace all") {

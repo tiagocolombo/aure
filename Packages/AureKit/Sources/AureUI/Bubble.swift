@@ -288,10 +288,17 @@ struct SuggestionCard: View {
     @ViewBuilder var writingSection: some View {
         if let suggestion = c.writingSuggestion {
             Divider()
-            Label("Better writing · Optional", systemImage: "sparkles").font(.subheadline.bold())
-                .foregroundStyle(.orange)
-            Text("\(suggestion.tone.displayName) alternative. Review before applying.")
-                .font(.caption).foregroundStyle(.secondary)
+            if suggestion.soundsAIWritten {
+                Label("Sounds AI-written · Optional", systemImage: "person.wave.2").font(.subheadline.bold())
+                    .foregroundStyle(.orange)
+                Text("A plainer \(suggestion.tone.displayName.lowercased()) version with less jargon and fewer dashes. Review before applying.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                Label("Better writing · Optional", systemImage: "sparkles").font(.subheadline.bold())
+                    .foregroundStyle(.orange)
+                Text("\(suggestion.tone.displayName) alternative. Review before applying.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             ScrollView {
                 DiffText(original: suggestion.original,
                          issues: IssueBuilder.issues(original: suggestion.original, corrected: suggestion.replacement, edits: []))
