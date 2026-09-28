@@ -21,7 +21,7 @@ scripts/lint.sh
 2. Add a regression test before fixing a bug. Core logic belongs in the Swift package, separate from UI and Accessibility effects where possible.
 3. Run the tests and lint script. Include the commands and results in your pull request, and state what you could not verify.
 4. For UI or Accessibility changes, test a real app as well as the unit tests. Include macOS version, hardware architecture, target app/browser version, and the exact field tested.
-5. Update public documentation if behavior or setup changes. Treat `docs/PLAN.md` and `docs/BACKLOG.md` as design history and planned work, not a list of implemented features.
+5. Update public documentation if behavior or setup changes.
 
 Do not change unrelated files or reformat the whole project. Never commit signing identities, credentials, downloaded models, build output, private writing, or raw diagnostic logs.
 
