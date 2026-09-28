@@ -14,6 +14,9 @@ set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 root="$AURE_ROOT"
 repo="${AURE_REPO:-tiagocolombo/aure}"
+# Check before creating anything: the new identity is only exportable here.
+command -v gh >/dev/null || { echo "error: gh (GitHub CLI) not found; install it or add it to PATH"; exit 1; }
+gh auth status >/dev/null 2>&1 || { echo "error: gh is not logged in; run 'gh auth login'"; exit 1; }
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
