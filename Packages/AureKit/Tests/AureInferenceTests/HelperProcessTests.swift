@@ -90,24 +90,20 @@ import Testing
         #expect(LocalListener.isOwnedByCurrentUser(port: port))
     }
 
-    @Test func findsHelpersLeftRunningByAnEarlierParent() async throws {
-        // A private copy, so only this test's process matches. The shell exits at
-        // once, so launchd adopts its background sleep: an orphan.
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let sleeper = dir.appendingPathComponent("sleep")
-        try FileManager.default.copyItem(at: URL(fileURLWithPath: "/bin/sleep"), to: sleeper)
-        // A copied system binary only runs once re-signed.
-        #expect(try await run("/usr/bin/codesign", ["-f", "-s", "-", sleeper.path]).0 == 0)
-        _ = try await run("/bin/sh", ["-c", "'\(sleeper.path)' 30 & exit 0"])
-        // The background child may still be a forked shell until its exec completes
-        // (slow on CI runners), so wait for it to show up.
-        var orphans: [pid_t] = []
-        for _ in 0..<100 where orphans.isEmpty {
+    @Test func findsHelpersByExecutableAndParent() async throws {
+        let sleep = URL(fileURLWithPath: "/bin/sleep")
+        let child = try ChildProcess(executable: sleep, arguments: ["30"], environment: ChildProcess.minimalEnvironment(),
+                                     output: nil) { _ in }
+        defer { child.forceKill() }
+        // Poll: the child only shows the executable's path once its exec completes.
+        var found: [pid_t] = []
+        for _ in 0..<100 where !found.contains(child.pid) {
             try await Task.sleep(for: .milliseconds(50))
-            orphans = LocalListener.orphans(of: sleeper)
+            found = LocalListener.processes(running: sleep, parent: getpid())
         }
-        defer { orphans.forEach { kill($0, SIGTERM) } }
-        #expect(!orphans.isEmpty)
-        #expect(!orphans.contains(getpid()))
+        #expect(found.contains(child.pid))
+        // Aure's own running helper is never mistaken for an orphan (parent launchd).
+        #expect(!LocalListener.orphans(of: sleep).contains(child.pid))
+        #expect(!LocalListener.processes(running: URL(fileURLWithPath: "/bin/cat"), parent: getpid()).contains(child.pid))
     }
 }

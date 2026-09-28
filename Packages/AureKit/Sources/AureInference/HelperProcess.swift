@@ -227,9 +227,14 @@ public enum LocalListener {
     /// left behind when Aure crashed or was killed (a clean quit stops them). They
     /// keep a model in memory and serve the last text checked, so they are stopped.
     public static func orphans(of executable: URL) -> [pid_t] {
+        processes(running: executable, parent: 1)
+    }
+
+    /// This user's processes running `executable` whose parent is `parent`.
+    static func processes(running executable: URL, parent: pid_t) -> [pid_t] {
         let target = executable.resolvingSymlinksInPath().standardizedFileURL.path
         return ownProcesses().filter { pid, info in
-            guard info.pbi_ppid == 1 else { return false }
+            guard info.pbi_ppid == UInt32(parent) else { return false }
             var buf = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)
             guard proc_pidpath(pid, &buf, UInt32(buf.count)) > 0 else { return false }
             return URL(fileURLWithPath: String(cString: buf)).resolvingSymlinksInPath().standardizedFileURL.path == target
