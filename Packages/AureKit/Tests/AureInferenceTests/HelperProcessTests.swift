@@ -99,8 +99,13 @@ import Testing
         // A copied system binary only runs once re-signed.
         #expect(try await run("/usr/bin/codesign", ["-f", "-s", "-", sleeper.path]).0 == 0)
         _ = try await run("/bin/sh", ["-c", "'\(sleeper.path)' 30 & exit 0"])
-        try await Task.sleep(for: .milliseconds(100))
-        let orphans = LocalListener.orphans(of: sleeper)
+        // The background child may still be a forked shell until its exec completes
+        // (slow on CI runners), so wait for it to show up.
+        var orphans: [pid_t] = []
+        for _ in 0..<100 where orphans.isEmpty {
+            try await Task.sleep(for: .milliseconds(50))
+            orphans = LocalListener.orphans(of: sleeper)
+        }
         defer { orphans.forEach { kill($0, SIGTERM) } }
         #expect(!orphans.isEmpty)
         #expect(!orphans.contains(getpid()))
