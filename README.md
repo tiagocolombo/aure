@@ -8,9 +8,29 @@
 
 Aure is a local grammar and tone assistant for macOS. It runs a language model on your Mac, suggests corrections, and lets you decide what to keep. Write in Aure Pad or review suggestions in other apps through macOS Accessibility—without sending your text to a cloud inference service.
 
-[Build from source](#build-from-source) · [Privacy](#privacy-and-offline-use) · [Contribute](CONTRIBUTING.md) · [Report a bug](https://github.com/tiagocolombo/aure/issues)
+[Download](#install) · [Build from source](#build-from-source) · [Privacy](#privacy-and-offline-use) · [Contribute](CONTRIBUTING.md) · [Report a bug](https://github.com/tiagocolombo/aure/issues)
 
 **Early development:** app integrations and model quality are still being tested. Google Docs support is experimental, not a promise of reliable document editing. Keep a copy of important writing and review every replacement.
+
+## See it in action
+
+<p align="center">
+  <img src="docs/assets/demo-grammar.gif" alt="Typing a sentence with three grammar errors in TextEdit. Aure's red bubble shows 3; its card lists each fix, and Apply fixes corrects the text." width="640">
+</p>
+
+**Grammar fixes in any app.** Type as usual. The red bubble counts errors, and the card shows every fix before anything changes.
+
+<p align="center">
+  <img src="docs/assets/demo-ai-writing.gif" alt="Buzzword-heavy text with an em dash in TextEdit. Aure's yellow card says 'Sounds AI-written' and offers a plainer version, which is applied." width="640">
+</p>
+
+**Plainer writing.** When text reads like generic AI output (buzzwords, hype, em dashes), the yellow card says so and offers a plainer alternative. Nothing changes until you apply it.
+
+<p align="center">
+  <img src="docs/assets/menu-bar.png" alt="Aure's menu bar window: model status, what Aure is checking, tone picker, pause switch, model picker, and menu items." width="300">
+</p>
+
+Recorded with Qwen3 4B on an Apple Silicon Mac. Suggestions come from the model, so your results will vary.
 
 ## Why Aure?
 
@@ -25,13 +45,23 @@ Aure is a local grammar and tone assistant for macOS. It runs a language model o
 - Informal, formal, and strict formal tone presets, with editable descriptions and US/Canadian English settings.
 - A menu bar app with pause controls, model status, and a suggestion bubble for accessible text fields in other apps.
 - Red bubbles indicate grammar corrections; yellow bubbles indicate optional model-generated writing alternatives when no corrections remain. The popup separates the two and lets you preview, apply, or dismiss suggestions. Automatic writing alternatives are currently limited to text up to 1,200 UTF-16 units.
+- A "Sounds AI-written" label when the model judges text to read like generic AI output. Rewrites prefer plain words, and em dashes are blocked during generation. The judgment is the model's, not a detector you can rely on.
+- In-app updates: Aure can check GitHub Releases once a day, notify you, and install a new version from the menu bar or Settings.
 - Local GGUF inference through [llama.cpp](https://github.com/ggml-org/llama.cpp), with Metal on Apple Silicon and CPU inference on Intel.
 - Model downloads with checksum verification, model switching, and local GGUF import. An imported model must be compatible with the runtime and prompting; importing a file does not guarantee useful corrections.
 - Models you already downloaded with LM Studio, Ollama, llama.cpp (`-hf` cache), the Hugging Face cache, Jan, or GPT4All appear under **Settings → Models → From other apps on this Mac** and are used in place, without copying. Aure's prompts are tuned and evaluated on the Qwen3 models in its catalog; other models may fix fewer errors or change correct text. Extra folders can be added with `AURE_EXTRA_MODEL_DIRS` (colon-separated).
 
 Aure uses Accessibility for cross-app checking. Compatibility depends on what each app exposes, so Slack, browser editors, rich text fields, and different app versions can behave differently. If reading or replacement fails, use Aure Pad and copy the result manually. Google Docs' canvas-based editor is a particular limitation: treat any Docs integration as experimental and test only on a disposable document first. See the [Google Docs setup and verification guide](docs/GOOGLE_DOCS.md).
 
-A dedicated Chrome extension/native messaging bridge, a guided voice-profile assistant, and learning from accepted or dismissed edits are roadmap items, not shipped features. [The plan](docs/PLAN.md) and [backlog](docs/BACKLOG.md) describe intended work and include designs that differ from the current code.
+A dedicated Chrome extension/native messaging bridge, a guided voice-profile assistant, and learning from accepted or dismissed edits are roadmap items, not shipped features.
+
+## Install
+
+1. Download `Aure-<version>.dmg` from the [latest release](https://github.com/tiagocolombo/aure/releases/latest) and drag Aure into Applications. The app is universal (Apple Silicon and Intel) and needs macOS 14 or newer.
+2. Right-click Aure in Applications, choose **Open**, then **Open** again. Releases are signed with a self-signed certificate and are not yet notarized by Apple, so macOS asks this once.
+3. Pick a model in the setup window, and grant Accessibility when asked so Aure can check other apps.
+
+A new release is published after every change merged into `main`. On its second launch Aure asks whether to check for updates automatically; you can change that under **Settings → General → Updates**. Updates are verified with an EdDSA signature before they are installed.
 
 ## Build from source
 
@@ -83,7 +113,7 @@ AURE_SKIP_BUILD=1 scripts/make-dmg.sh
 
 The output is `dist/Aure-<version>.dmg`. These are local development packages, not notarized releases. macOS may block an unnotarized downloaded build; only approve software you built or trust. A locally generated DMG is not evidence of testing on another Mac.
 
-The optional Nix setup currently depends on a private development-shell repository. Public contributors should use the scripts above rather than `nix develop` or the maintainer's `dev` CLI.
+You don't need Nix or direnv. The maintainer's optional Nix setup depends on a private development-shell repository, so public contributors should use the scripts above rather than `nix develop` or the maintainer's `dev` CLI.
 
 ## Privacy and offline use
 
@@ -93,7 +123,8 @@ Offline inference does **not** make the app you are writing in offline. Google D
 
 - Cross-app checking reads focused text through Accessibility. The code skips recognized secure text fields and a built-in list of password managers, terminals, and code editors; that list is not a universal sensitive-data detector. Pause checking when needed.
 - Replacement may temporarily place corrected text on the system clipboard, then restore the previous contents. Clipboard-monitoring software can still observe it.
-- Models live in `~/Library/Application Support/Aure/Models/`. Preferences use macOS UserDefaults. The inference process writes a local diagnostic log at `~/Library/Logs/Aure/llama-server.log`.
+- If you allow update checks, Aure downloads `appcast.xml` from GitHub Releases once a day. The request carries the app version and no writing or system profile.
+- Models live in `~/Library/Application Support/Aure/Models/`. Preferences use macOS UserDefaults. The inference process writes a local diagnostic log at `~/Library/Logs/Aure/llama-server.log`, and the app logs actions (never your text) to `~/Library/Logs/Aure/aure.log`.
 - Do not publish raw logs, screenshots, or evaluation output without reviewing them for private text and local paths.
 
 ## Model limitations

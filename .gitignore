@@ -27,3 +27,6 @@ eval/out/
 vendor/
 eval/.venv/
 eval/bea/
+
+# Maintainer-only direnv setup (the Nix flake needs a private repository).
+.envrc
