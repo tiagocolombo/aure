@@ -98,6 +98,26 @@ public enum ResponseParser {
 }
 
 public enum Validator {
+    /// Drops invisible characters the original does not contain: zero-width
+    /// spaces and joiners, bidirectional overrides (which can make text display in
+    /// a different order than it reads), tag characters and control characters.
+    /// A review diff cannot show them, so the user could not approve them.
+    public static func removingHiddenCharacters(_ text: String, keepingThoseIn original: String) -> String {
+        let allowed = Set(original.unicodeScalars)
+        var out = String.UnicodeScalarView()
+        for scalar in text.unicodeScalars {
+            let hidden: Bool
+            switch scalar.properties.generalCategory {
+            case .format: hidden = true
+            case .control: hidden = !["\n", "\r", "\t"].contains(scalar)
+            default: hidden = false
+            }
+            if !hidden || allowed.contains(scalar) { out.append(scalar) }
+        }
+        return String(out)
+    }
+
+
     public struct Config: Sendable {
         /// Max share of original tokens that may change in `correct` mode.
         public var maxCorrectChangeRatio: Double = 0.35
@@ -107,7 +127,7 @@ public enum Validator {
     /// Returns the text to use as `corrected`, or throws `rejected`.
     public static func validate(original: String, answer: ModelAnswer, mode: CheckMode,
                                 config: Config = Config()) throws -> String {
-        var corrected = answer.corrected
+        var corrected = removingHiddenCharacters(answer.corrected, keepingThoseIn: original)
         // Models often trim; restore the original's leading/trailing whitespace.
         let lead = original.prefix { $0.isWhitespace }
         let trail = String(original.reversed().prefix { $0.isWhitespace }.reversed())

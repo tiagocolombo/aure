@@ -137,7 +137,8 @@ public enum ExternalModels {
                   let data = try? Data(contentsOf: file),
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let layers = json["layers"] as? [[String: Any]],
-                  let digest = layers.first(where: { $0["mediaType"] as? String == "application/vnd.ollama.image.model" })?["digest"] as? String
+                  let digest = layers.first(where: { $0["mediaType"] as? String == "application/vnd.ollama.image.model" })?["digest"] as? String,
+                  isOllamaDigest(digest)
             else { continue }
             let blob = dir.appendingPathComponent("blobs/" + digest.replacingOccurrences(of: ":", with: "-"))
             // ".../library/qwen3/4b" → "qwen3:4b" (the name users type in `ollama run`).
@@ -146,6 +147,25 @@ public enum ExternalModels {
             out.append((blob, label))
         }
         return out
+    }
+
+    /// "sha256:<64 hex>". Anything else could point the blob path outside `blobs/`.
+    static func isOllamaDigest(_ digest: String) -> Bool {
+        digest.range(of: #"^sha256:[0-9a-f]{64}$"#, options: .regularExpression) != nil
+    }
+
+    /// True when `url` is a model file inside one of `locations`: a GGUF file, or a
+    /// blob in an Ollama models folder. The path itself is checked, not where its
+    /// symlinks lead, as Hugging Face snapshots are symlinks.
+    public static func isInKnownLocation(_ url: URL, locations: [Location] = defaultLocations()) -> Bool {
+        let path = url.standardizedFileURL.path
+        return locations.contains { loc in
+            let dir = loc.directory.standardizedFileURL.path
+            if loc.isOllama {
+                return path.hasPrefix(dir + "/blobs/sha256-") && !path.dropFirst(dir.count + 7).contains("/")
+            }
+            return path.hasPrefix(dir + "/") && url.pathExtension.lowercased() == "gguf"
+        }
     }
 
     /// "model-00001-of-00003.gguf" → all parts in order, or nil if not a split model.

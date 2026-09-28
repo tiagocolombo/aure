@@ -122,6 +122,18 @@ import Testing
                                    mode: .rewrite)
     }
 
+    @Test func dropsHiddenCharactersTheModelAdded() throws {
+        // Zero-width space, a right-to-left override and a tag character are invisible in a diff.
+        let out = try Validator.validate(original: "Send it to the team today.",
+                                         answer: answer("Send it to the\u{200B} team\u{202E} today.\u{E0041}"), mode: .correct)
+        #expect(out == "Send it to the team today.")
+    }
+
+    @Test func keepsHiddenCharactersTheOriginalHas() {
+        let family = "\u{1F469}\u{200D}\u{1F467}" // woman + ZWJ + girl
+        #expect(Validator.removingHiddenCharacters("Our \(family) trip\n", keepingThoseIn: "our \(family) trip") == "Our \(family) trip\n")
+    }
+
     @Test func rejectsDroppedURLMentionAndEmoji() {
         #expect(throws: AureError.self) {
             try Validator.validate(original: "see https://x.com/a for info", answer: answer("see the link for info"), mode: .rewrite)
