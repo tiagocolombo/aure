@@ -36,15 +36,36 @@ public struct OllamaClient: Sendable {
     }
 
     /// `OLLAMA_HOST` when set ("host:port" or a URL), else http://127.0.0.1:11434.
+    /// Only a server on this Mac is used: the text Aure checks must not leave it, and
+    /// Ollama's API has no encryption or authentication. A remote host is ignored.
     public static func defaultBaseURL(environment: [String: String] = ProcessInfo.processInfo.environment) -> URL {
         let fallback = URL(string: "http://127.0.0.1:11434")!
         guard var host = environment["OLLAMA_HOST"]?.trimmingCharacters(in: .whitespaces), !host.isEmpty else { return fallback }
         if !host.contains("://") { host = "http://" + host }
         guard var c = URLComponents(string: host), let h = c.host, !h.isEmpty else { return fallback }
         // The server listens on every interface for 0.0.0.0; connect locally.
-        if h == "0.0.0.0" { c.host = "127.0.0.1" }
+        if h == "0.0.0.0" || h == "::" { c.host = "127.0.0.1" }
+        guard isLoopback(c.host ?? "") else {
+            Log.info("ollama: OLLAMA_HOST is not on this Mac; using 127.0.0.1:11434")
+            return fallback
+        }
+        c.scheme = "http"
         if c.port == nil { c.port = 11434 }
         return c.url ?? fallback
+    }
+
+    static func isLoopback(_ host: String) -> Bool {
+        let h = host.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+        return h == "localhost" || h == "::1" || h.hasPrefix("127.")
+    }
+
+    /// Anyone can listen on 127.0.0.1:11434 while Ollama is not running, including
+    /// another account on this Mac. Text is only sent to a server this user runs.
+    static func checkServerOwner(_ url: URL) throws {
+        guard !LocalListener.isOwnedByCurrentUser(port: url.port ?? 11434) else { return }
+        Log.info("ollama: port \(url.port ?? 11434) is not served by this user; not sending text")
+        throw AureError.server("The program on Ollama's port (\(url.port ?? 11434)) does not belong to you; "
+            + "Aure will not send it your text")
     }
 
     /// The Ollama menu bar app, when installed (a Homebrew install may be the CLI only).
@@ -108,6 +129,7 @@ public struct OllamaClient: Sendable {
         req.timeoutInterval = 3600
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: ["model": model, "stream": true])
+        try Self.checkServerOwner(baseURL)
         let (bytes, resp) = try await session.bytes(for: req)
         guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             throw AureError.server("Ollama could not pull \(model)")
@@ -143,6 +165,7 @@ public struct OllamaClient: Sendable {
     }
 
     private func send(_ req: URLRequest) async throws -> Data {
+        try Self.checkServerOwner(baseURL)
         let (data, resp): (Data, URLResponse)
         do {
             (data, resp) = try await session.data(for: req)
@@ -232,6 +255,7 @@ public struct OllamaProvider: LLMProvider {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: body(system: system, examples: examples, user: user,
                                                                        jsonSchema: jsonSchema, params: params))
+        try OllamaClient.checkServerOwner(baseURL)
         let (data, resp): (Data, URLResponse)
         do {
             (data, resp) = try await session.data(for: req)
