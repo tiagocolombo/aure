@@ -14,4 +14,15 @@ enum ReplacementSafety {
         }
         return ns.replacingCharacters(in: NSRange(location: range.lowerBound, length: range.count), with: replacement)
     }
+
+    enum WriteOutcome: Equatable { case applied, ignored, uncertain }
+
+    /// Classifies the field text after an AX write the target app accepted.
+    /// Chrome and Electron often report success but leave the field untouched;
+    /// only that case is safe to retry with a paste.
+    static func writeOutcome(original: String, expected: String, current: String?) -> WriteOutcome {
+        if current == expected { return .applied }
+        if current == original { return .ignored }
+        return .uncertain
+    }
 }
