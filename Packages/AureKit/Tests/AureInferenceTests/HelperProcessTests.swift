@@ -106,4 +106,20 @@ import Testing
         #expect(!LocalListener.orphans(of: sleep).contains(child.pid))
         #expect(!LocalListener.processes(running: URL(fileURLWithPath: "/bin/cat"), parent: getpid()).contains(child.pid))
     }
+
+    @Test func signatureCheckRejectsUnsignedAndModifiedHelpers() throws {
+        // The test runner is ad-hoc signed, so only the helper's own signature counts here.
+        #expect(CodeSignature.matchesOwnSigner(URL(fileURLWithPath: "/bin/ls")))
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let copy = dir.appendingPathComponent("ls")
+        try FileManager.default.copyItem(at: URL(fileURLWithPath: "/bin/ls"), to: copy)
+        let h = try FileHandle(forWritingTo: copy)
+        try h.seekToEnd()
+        try h.write(contentsOf: Data([0]))
+        try h.close()
+        #expect(!CodeSignature.matchesOwnSigner(copy))
+        let script = dir.appendingPathComponent("llama-server")
+        try Data("#!/bin/sh\n".utf8).write(to: script)
+        #expect(!CodeSignature.matchesOwnSigner(script))
+    }
 }

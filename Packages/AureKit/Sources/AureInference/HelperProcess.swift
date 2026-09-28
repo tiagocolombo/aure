@@ -1,5 +1,4 @@
 import AureCore
-import CryptoKit
 import Darwin
 import Foundation
 import Security
@@ -171,32 +170,30 @@ enum HelperSandbox {
 
 /// Code signature checks for bundled helpers.
 enum CodeSignature {
-    /// True when `url` has a valid signature from the same certificate as this app.
-    /// An ad-hoc signed app (a local or CI build) has no certificate to compare, so
-    /// then only the helper's own signature must be valid.
+    /// True when `url` has a valid signature from the same certificate as this app
+    /// (the leaf certificates are compared byte for byte). An ad-hoc signed app (a
+    /// local or CI build) has no certificate to compare, so then only the helper's
+    /// own signature must be valid.
     static func matchesOwnSigner(_ url: URL) -> Bool {
         var code: SecStaticCode?
         guard SecStaticCodeCreateWithPath(url as CFURL, [], &code) == errSecSuccess, let code else { return false }
-        var requirement: SecRequirement?
-        if let leaf = ownLeafCertificateSHA1() {
-            guard SecRequirementCreateWithString("certificate leaf = H\"\(leaf)\"" as CFString, [], &requirement)
-                    == errSecSuccess else { return false }
-        }
         let flags = SecCSFlags(rawValue: kSecCSCheckAllArchitectures | kSecCSStrictValidate)
-        return SecStaticCodeCheckValidityWithErrors(code, flags, requirement, nil) == errSecSuccess
-    }
-
-    static func ownLeafCertificateSHA1() -> String? {
+        guard SecStaticCodeCheckValidityWithErrors(code, flags, nil, nil) == errSecSuccess else { return false }
         var me: SecCode?
         var staticMe: SecStaticCode?
-        var info: CFDictionary?
         guard SecCodeCopySelf([], &me) == errSecSuccess, let me,
-              SecCodeCopyStaticCode(me, [], &staticMe) == errSecSuccess, let staticMe,
-              SecCodeCopySigningInformation(staticMe, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
+              SecCodeCopyStaticCode(me, [], &staticMe) == errSecSuccess, let staticMe else { return false }
+        guard let mine = leafCertificate(staticMe) else { return true }
+        return leafCertificate(code) == mine
+    }
+
+    /// DER bytes of the certificate that signed `code`, nil when ad-hoc signed.
+    static func leafCertificate(_ code: SecStaticCode) -> Data? {
+        var info: CFDictionary?
+        guard SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
               let certs = (info as? [String: Any])?[kSecCodeInfoCertificates as String] as? [SecCertificate],
               let leaf = certs.first else { return nil }
-        let der = SecCertificateCopyData(leaf) as Data
-        return Insecure.SHA1.hash(data: der).map { String(format: "%02X", $0) }.joined()
+        return SecCertificateCopyData(leaf) as Data
     }
 }
 
