@@ -20,7 +20,7 @@
          SUPublicEDKey is written by scripts/setup-release-secrets.sh. Sparkle
          asks before the first automatic check (no SUEnableAutomaticChecks). -->
     <key>SUFeedURL</key><string>https://github.com/tiagocolombo/aure/releases/latest/download/appcast.xml</string>
-    <key>SUPublicEDKey</key><string>__SPARKLE_PUBLIC_KEY__</string>
+    <key>SUPublicEDKey</key><string>zfoC9MZ6uMGUg4sDUHIzxKWW8NEQnMNcML1xPfCjFls=</string>
     <key>SUScheduledCheckInterval</key><integer>86400</integer>
 </dict>
 </plist>
