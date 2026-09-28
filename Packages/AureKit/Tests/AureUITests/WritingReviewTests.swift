@@ -43,8 +43,24 @@ import Testing
     #expect(writes == 0)
     c.runCheck()
     c.requestWritingSuggestion()
-    #expect(fake.callCount == 2)
+    #expect(fake.callCount == 3) // grammar, AI-style check, rewrite
     #expect(c.writingSuggestion == nil)
+    c.stop()
+}
+
+@Test @MainActor func aiStyleVerdictLabelsTheAlternative() async throws {
+    let app = AppState(defaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let input = "We leverage synergies to unlock value."
+    await app.correction.setProvider(FakeLLMProvider { system, _ in
+        if system.contains("You judge writing style") { return "yes" }
+        return system.contains("Task: rewrite") ? "We work together to get results." : input
+    })
+    let c = CheckCoordinator(app: app, isReady: { true })
+    c.debounceInterval = .zero
+    c.writingDebounceInterval = .zero
+    c.fieldChanged(testField(input))
+    try await waitFor { c.writingSuggestion != nil }
+    #expect(c.writingSuggestion?.soundsAIWritten == true)
     c.stop()
 }
 
@@ -122,7 +138,7 @@ import Testing
     #expect(c.writingSuggestion == nil)
     c.requestWritingSuggestion(tone: .informal)
     #expect(!c.suggestingWriting)
-    #expect(fake.callCount == 2)
+    #expect(fake.callCount == 3) // grammar, AI-style check, rewrite
     c.stop()
 }
 
@@ -205,7 +221,7 @@ import Testing
     c.debounceInterval = .zero
     c.writingDebounceInterval = .zero
     c.fieldChanged(testField(input))
-    try await waitFor { fake.callCount == 2 }
+    try await waitFor { fake.callCount == 3 } // grammar, AI-style check, rewrite
     c.debounceInterval = .seconds(60)
     c.fieldChanged(testField(input + " New text."))
     try await Task.sleep(for: .milliseconds(200))
@@ -229,14 +245,14 @@ import Testing
     let input = "I would like to ask you to send the report."
     let suggestion = try await app.suggestWriting(input)
     #expect(suggestion?.replacement == "Please send the report.")
-    #expect(provider.callCount == 1)
+    #expect(provider.callCount == 2) // AI-style check + rewrite
     _ = try await app.suggestWriting(input)
-    #expect(provider.callCount == 1) // reuse CorrectionService's request cache
+    #expect(provider.callCount == 2) // reuse CorrectionService's request cache
     let long = try await app.suggestWriting(String(repeating: "word ", count: 500))
     #expect(long == nil)
-    #expect(provider.callCount == 1)
+    #expect(provider.callCount == 2)
     app.writingSuggestionsEnabled = false
     let disabled = try await app.suggestWriting("Could you send me the document?")
     #expect(disabled == nil)
-    #expect(provider.callCount == 1)
+    #expect(provider.callCount == 2)
 }

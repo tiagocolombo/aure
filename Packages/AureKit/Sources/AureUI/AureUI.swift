@@ -161,6 +161,12 @@ struct MenuContent: View {
 
             Divider()
 
+            if let version = app.updates.availableVersion {
+                MenuButton(title: "Install Aure \(version)…", systemImage: "arrow.down.circle.fill") {
+                    app.updates.checkForUpdates()
+                }
+                .foregroundStyle(Color.accentColor)
+            }
             MenuButton(title: "Open Aure Pad", systemImage: "square.and.pencil", shortcut: "⌥⌘P") {
                 activate(); openWindow(id: "pad")
             }
@@ -169,6 +175,11 @@ struct MenuContent: View {
             }
             MenuButton(title: "About Aure…", systemImage: "info.circle") {
                 activate(); openWindow(id: "about")
+            }
+            if app.updates.isEnabled, app.updates.availableVersion == nil {
+                MenuButton(title: "Check for Updates…", systemImage: "arrow.triangle.2.circlepath") {
+                    app.updates.checkForUpdates()
+                }
             }
             if !app.onboardingDone || app.engine == .noModel {
                 MenuButton(title: "Set up Aure…", systemImage: "sparkles") {

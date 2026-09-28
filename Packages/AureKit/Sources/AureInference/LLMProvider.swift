@@ -7,12 +7,16 @@ public struct GenParams: Sendable, Equatable {
     public var maxTokens: Int
     /// Number of alternatives to return per token (0 = no logprobs).
     public var topLogprobs: Int
+    /// Strings the model may not generate (only those that are one token).
+    public var banned: [String]
 
-    public init(temperature: Double = 0.2, topP: Double = 0.9, maxTokens: Int = 512, topLogprobs: Int = 0) {
+    public init(temperature: Double = 0.2, topP: Double = 0.9, maxTokens: Int = 512, topLogprobs: Int = 0,
+                banned: [String] = []) {
         self.temperature = temperature
         self.topP = topP
         self.maxTokens = maxTokens
         self.topLogprobs = topLogprobs
+        self.banned = banned
     }
 }
 

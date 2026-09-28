@@ -167,10 +167,15 @@ public actor CorrectionService {
         let task = Task<CheckResult, Error> {
             let started = Date()
             let wantConfidence = request.mode == .correct
+            let rewrite = request.mode == .rewrite
+            // Rewrites also ask, in parallel, whether the original reads like AI output.
+            async let aiStyle: Bool = rewrite ? Self.soundsAIWritten(request.text, provider: provider) : false
             let completion = try await provider.generate(
                 system: prompt.system, examples: prompt.examples, user: prompt.user, jsonSchema: nil,
                 params: GenParams(temperature: prompt.temperature, maxTokens: prompt.maxTokens,
-                                  topLogprobs: wantConfidence ? 5 : 0))
+                                  topLogprobs: wantConfidence ? 5 : 0,
+                                  banned: rewrite ? AIStyleCheck.bannedDashes : []))
+            let soundsAIWritten = await aiStyle
             try Task.checkCancellation()
             let answer = try ResponseParser.parse(completion.text, original: request.text)
             let scored = wantConfidence
@@ -194,7 +199,8 @@ public actor CorrectionService {
                 corrected = Self.applying(issues, to: request.text)
             }
             return CheckResult(request: request, corrected: corrected, issues: issues,
-                               latencyMs: Int(Date().timeIntervalSince(started) * 1000))
+                               latencyMs: Int(Date().timeIntervalSince(started) * 1000),
+                               soundsAIWritten: soundsAIWritten)
         }
         inFlight[key] = task
         defer { inFlight[key] = nil }
@@ -213,6 +219,17 @@ public actor CorrectionService {
         if cacheOrder.count > cacheLimit {
             cache[cacheOrder.removeFirst()] = nil
         }
+    }
+
+    /// Optional signal: a failed check just means no "Sounds AI-written" label.
+    static func soundsAIWritten(_ text: String, provider: any LLMProvider) async -> Bool {
+        let p = AIStyleCheck.prompt(for: text)
+        guard let c = try? await provider.generate(
+            system: p.system, examples: p.examples, user: p.user, jsonSchema: nil,
+            params: GenParams(temperature: p.temperature, maxTokens: p.maxTokens, topLogprobs: 5)) else { return false }
+        let flagged = AIStyleCheck.isAIStyle(answer: c.text, tokens: c.tokens)
+        Log.info("rewrite: ai-style=\(flagged)")
+        return flagged
     }
 
     /// Text with the given (non-overlapping) issues applied.

@@ -15,6 +15,7 @@ public enum TextReplacer {
     @discardableResult
     public static func replace(in field: FocusedField, range: Range<Int>, with replacement: String) async -> Method? {
         let el = field.element
+        let app = field.bundleId ?? "?"
         guard let expected = ReplacementSafety.expectedText(original: field.text, current: el.text,
                                                               range: range, replacement: replacement,
                                                               hasFocus: hasFocus(field)),
@@ -22,29 +23,52 @@ public enum TextReplacer {
               !Task.isCancelled, hasFocus(field), el.text == field.text else { return nil }
 
         if el.set(kAXSelectedTextAttribute, replacement as CFString) {
-            try? await Task.sleep(for: .milliseconds(80))
-            if el.text == expected {
-                Log.info("replace: accessibility verified (\(field.bundleId ?? "?"))")
+            switch await settledWrite(el, original: field.text, expected: expected) {
+            case .applied:
+                Log.info("replace: accessibility verified (\(app))")
                 return .accessibility
+            case .uncertain:
+                // An accepted write may be delayed or partial. Never duplicate it
+                // with a second write/paste when its result is uncertain.
+                Log.info("replace: accessibility result unverified; no retry (\(app))")
+                return nil
+            case .ignored:
+                // The app reported success but left the field untouched, so a
+                // paste cannot duplicate anything. Reselect: the write may have
+                // collapsed the selection.
+                Log.info("replace: accessibility write ignored; trying paste (\(app))")
+                guard !Task.isCancelled, await select(el, range) else { return nil }
             }
-            // An accepted write may be delayed or partial. Never duplicate it
-            // with a second write/paste when its result is uncertain.
-            Log.info("replace: accessibility result unverified; no retry")
-            return nil
         }
 
         // A canvas/proxy editor must never receive an unverified Command-A.
         // Paste only into the same, unchanged field with the exact range still selected.
         guard !Task.isCancelled, hasFocus(field), el.text == field.text,
-              el.selectedRange == range else { return nil }
+              el.selectedRange == range else {
+            Log.info("replace: paste preconditions failed (\(app))")
+            return nil
+        }
         await paste(replacement)
         try? await Task.sleep(for: .milliseconds(150))
         guard el.text == expected else {
-            Log.info("replace: paste result unverified")
+            Log.info("replace: paste result unverified (\(app))")
             return nil
         }
-        Log.info("replace: paste verified (\(field.bundleId ?? "?"))")
+        Log.info("replace: paste verified (\(app))")
         return .paste
+    }
+
+    /// Waits up to ~500 ms for an accepted AX write to land, returning early
+    /// once the field shows the expected text or changes in some other way.
+    private static func settledWrite(_ el: AXElement, original: String,
+                                     expected: String) async -> ReplacementSafety.WriteOutcome {
+        var outcome = ReplacementSafety.WriteOutcome.ignored
+        for _ in 0..<10 {
+            try? await Task.sleep(for: .milliseconds(50))
+            outcome = ReplacementSafety.writeOutcome(original: original, expected: expected, current: el.text)
+            if outcome != .ignored { break }
+        }
+        return outcome
     }
 
     private static func hasFocus(_ field: FocusedField) -> Bool {

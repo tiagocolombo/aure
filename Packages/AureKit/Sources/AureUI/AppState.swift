@@ -76,6 +76,7 @@ public final class AppState {
     public let hardware = Hardware.current
     public let store: ModelStore
     public let correction = CorrectionService()
+    public let updates = UpdateController()
     public var lastResult: CheckResult?
     public var coordinator: CheckCoordinator?
     public var accessibilityTrusted = AccessibilityPermission.isTrusted
@@ -229,7 +230,8 @@ public final class AppState {
         let rewrite = try await correction.check(CheckRequest(text: text, tone: targetTone, mode: .rewrite, dialect: dialect))
         try Task.checkCancellation()
         guard writingSuggestionsEnabled else { return nil }
-        return WritingSuggestion(original: text, replacement: rewrite.corrected, tone: targetTone)
+        return WritingSuggestion(original: text, replacement: rewrite.corrected, tone: targetTone,
+                                 soundsAIWritten: rewrite.soundsAIWritten)
     }
 
     // MARK: Downloads
