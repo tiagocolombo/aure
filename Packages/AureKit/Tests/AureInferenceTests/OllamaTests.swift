@@ -8,8 +8,15 @@ import Testing
         #expect(OllamaClient.defaultBaseURL(environment: [:]).absoluteString == "http://127.0.0.1:11434")
         #expect(OllamaClient.defaultBaseURL(environment: ["OLLAMA_HOST": "0.0.0.0"]).absoluteString == "http://127.0.0.1:11434")
         #expect(OllamaClient.defaultBaseURL(environment: ["OLLAMA_HOST": "127.0.0.1:8081"]).absoluteString == "http://127.0.0.1:8081")
-        #expect(OllamaClient.defaultBaseURL(environment: ["OLLAMA_HOST": "https://ollama.local"]).absoluteString
-            == "https://ollama.local:11434")
+        #expect(OllamaClient.defaultBaseURL(environment: ["OLLAMA_HOST": "localhost"]).absoluteString == "http://localhost:11434")
+        #expect(OllamaClient.defaultBaseURL(environment: ["OLLAMA_HOST": "[::1]:9000"]).absoluteString == "http://[::1]:9000")
+    }
+
+    /// Text must never leave the Mac: a remote OLLAMA_HOST is ignored.
+    @Test func remoteHostsAreIgnored() {
+        for host in ["https://ollama.local", "192.168.1.20:11434", "example.com", "http://10.0.0.5"] {
+            #expect(OllamaClient.defaultBaseURL(environment: ["OLLAMA_HOST": host]).absoluteString == "http://127.0.0.1:11434")
+        }
     }
 
     @Test func thinkingTemplatesGetAnEmptyThinkBlock() {

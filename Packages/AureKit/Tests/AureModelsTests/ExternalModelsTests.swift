@@ -55,10 +55,11 @@ func fakeGGUF(at url: URL, arch: String, name: String?, size: Int64 = 60_000_000
 
     @Test func findsOllamaModelsThroughManifests() throws {
         let ol = root.appendingPathComponent("ollama")
-        try fakeGGUF(at: ol.appendingPathComponent("blobs/sha256-deadbeef"), arch: "gemma3", name: "gemma")
+        let digest = String(repeating: "de", count: 32)
+        try fakeGGUF(at: ol.appendingPathComponent("blobs/sha256-\(digest)"), arch: "gemma3", name: "gemma")
         let manifest = ol.appendingPathComponent("manifests/registry.ollama.ai/library/gemma3/4b")
         try FileManager.default.createDirectory(at: manifest.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try Data(#"{"layers":[{"mediaType":"application/vnd.ollama.image.model","digest":"sha256:deadbeef"}]}"#.utf8).write(to: manifest)
+        try Data(#"{"layers":[{"mediaType":"application/vnd.ollama.image.model","digest":"sha256:\#(digest)"}]}"#.utf8).write(to: manifest)
 
         let found = ExternalModels.scan([.init(source: "Ollama", directory: ol, isOllama: true)])
         #expect(found.map(\.name) == ["gemma3:4b"])
@@ -90,5 +91,31 @@ func fakeGGUF(at url: URL, arch: String, name: String?, size: Int64 = 60_000_000
         #expect(m.matches(ExternalModels.idPrefix + alias.appendingPathComponent("m.gguf").path))
         #expect(!m.matches("qwen3-4b"))
         #expect(!m.matches(nil))
+    }
+
+    @Test func ollamaDigestsMustBeSHA256() {
+        #expect(ExternalModels.isOllamaDigest("sha256:" + String(repeating: "a1", count: 32)))
+        #expect(!ExternalModels.isOllamaDigest("sha256:../../../../etc/passwd"))
+        #expect(!ExternalModels.isOllamaDigest("sha256:" + String(repeating: "A1", count: 32)))
+    }
+
+    @Test func ignoresOllamaManifestsWithUnsafeDigests() throws {
+        let manifest = root.appendingPathComponent("ollama/manifests/registry.ollama.ai/library/evil/latest")
+        try FileManager.default.createDirectory(at: manifest.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let json = #"{"layers":[{"mediaType":"application/vnd.ollama.image.model","digest":"sha256:../../../secret"}]}"#
+        try Data(json.utf8).write(to: manifest)
+        #expect(ExternalModels.ollamaModels(in: root.appendingPathComponent("ollama")).isEmpty)
+    }
+
+    @Test func knownLocationsOnly() {
+        let locations = [ExternalModels.Location(source: "LM Studio", directory: URL(fileURLWithPath: "/m/lms")),
+                         ExternalModels.Location(source: "Ollama", directory: URL(fileURLWithPath: "/m/ollama"), isOllama: true)]
+        func known(_ p: String) -> Bool { ExternalModels.isInKnownLocation(URL(fileURLWithPath: p), locations: locations) }
+        #expect(known("/m/lms/org/model/model-Q4_K_M.gguf"))
+        #expect(known("/m/ollama/blobs/sha256-abc"))
+        #expect(!known("/tmp/evil.gguf"))
+        #expect(!known("/m/lms/../../tmp/evil.gguf"))
+        #expect(!known("/m/lms/notes.txt"))
+        #expect(!known("/m/ollama/manifests/x"))
     }
 }

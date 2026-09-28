@@ -178,8 +178,9 @@ public final class AppState {
         guard let id = selectedModelID, id.hasPrefix(ExternalModels.idPrefix) else { return nil }
         if let known = externalModels.first(where: { $0.matches(id) }) { return known.info }
         // Before the first scan finishes: rebuild from the path so the engine can start at launch.
+        // The saved id is only a preference: never load a file outside the other tools' model folders.
         let url = URL(fileURLWithPath: String(id.dropFirst(ExternalModels.idPrefix.count)))
-        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        guard ExternalModels.isInKnownLocation(url), FileManager.default.fileExists(atPath: url.path) else { return nil }
         return ExternalModel(url: url, name: url.deletingPathExtension().lastPathComponent, source: "Other app",
                              bytes: 0, architecture: nil).info
     }

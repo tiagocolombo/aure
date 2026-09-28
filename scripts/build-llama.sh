@@ -5,11 +5,13 @@
 #   AURE_ARCHS=native scripts/build-llama.sh   # this machine only (faster)
 #
 # Output: build/llama/llama-server  (static: no dylibs, no Homebrew, no curl)
-# Source: vendor/llama.cpp, a shallow checkout of the tag in scripts/llama.version
+# Source: vendor/llama.cpp, a shallow checkout of the tag in scripts/llama.version,
+# verified against the commit pinned next to it (a tag can be moved upstream).
 set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 root="$AURE_ROOT"
-tag="$(tr -d '[:space:]' < "$root/scripts/llama.version")"
+read -r tag commit < "$root/scripts/llama.version"
+[ -n "${commit:-}" ] || { echo "error: scripts/llama.version must be '<tag> <commit sha>'"; exit 1; }
 src="$root/vendor/llama.cpp"
 out="$root/build/llama"
 jobs="$(sysctl -n hw.ncpu)"
@@ -17,10 +19,15 @@ jobs="$(sysctl -n hw.ncpu)"
 command -v cmake >/dev/null || { echo "cmake not found: run inside the dev shell (dev llama) or brew install cmake"; exit 1; }
 cmake_bin="$(command -v cmake)"
 
-if [ ! -d "$src/.git" ] || [ "$(git -C "$src" describe --tags --exact-match 2>/dev/null)" != "$tag" ]; then
+if [ ! -d "$src/.git" ] || [ "$(git -C "$src" rev-parse HEAD 2>/dev/null)" != "$commit" ]; then
   echo "==> fetching llama.cpp $tag"
   rm -rf "$src"
   git clone --quiet --depth 1 --branch "$tag" https://github.com/ggml-org/llama.cpp "$src"
+fi
+actual="$(git -C "$src" rev-parse HEAD)"
+if [ "$actual" != "$commit" ]; then
+  echo "error: llama.cpp $tag is commit $actual, expected $commit (pinned in scripts/llama.version)"
+  exit 1
 fi
 
 build_slice() {

@@ -25,9 +25,14 @@ public struct FocusedField: @unchecked Sendable, Equatable {
 public enum AppRules {
     /// Apps where Aure never reads text.
     public static let blocked: Set<String> = [
+        // Password managers: their fields are not always marked secure.
         "com.1password.1password", "com.agilebits.onepassword7", "com.bitwarden.desktop",
-        "com.apple.keychainaccess", "com.apple.Terminal", "com.googlecode.iterm2", "com.mitchellh.ghostty",
-        "dev.warp.Warp-Stable", "net.kovidgoyal.kitty", "com.apple.dt.Xcode", "com.microsoft.VSCode",
+        "com.apple.keychainaccess", "com.apple.Passwords", "org.keepassxc.keepassxc", "me.proton.pass.electron",
+        "in.sinew.Enpass-Desktop", "com.keepersecurity.passwordmanager",
+        // Terminals and code editors: commands, tokens and code, not prose.
+        "com.apple.Terminal", "com.googlecode.iterm2", "com.mitchellh.ghostty",
+        "dev.warp.Warp-Stable", "net.kovidgoyal.kitty", "org.alacritty", "com.github.wez.wezterm", "co.zeit.hyper",
+        "com.apple.dt.Xcode", "com.microsoft.VSCode", "com.microsoft.VSCodeInsiders", "dev.zed.Zed",
         "com.todesktop.230313mzl4w4u92", "com.jetbrains.intellij", "com.sublimetext.4",
         "com.tiagocolombo.aure",
     ]

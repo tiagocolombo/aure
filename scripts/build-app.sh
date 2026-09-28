@@ -75,7 +75,8 @@ if [ "$engine" = "ollama" ]; then
 elif [ -x "$root/build/llama/llama-server" ]; then
   cp "$root/build/llama/llama-server" "$app/Contents/Helpers/llama-server"
 else
-  echo "warning: build/llama/llama-server missing — run scripts/build-llama.sh, or build with AURE_ENGINE=ollama (the app will look for llama-server on PATH)"
+  echo "warning: build/llama/llama-server missing — run scripts/build-llama.sh, or build with AURE_ENGINE=ollama"
+  echo "         (a debug build looks for llama-server on PATH; a release build only runs its bundled copy)"
 fi
 
 "$root/scripts/sign-app.sh" "$app"
