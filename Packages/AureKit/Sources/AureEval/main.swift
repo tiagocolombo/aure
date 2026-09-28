@@ -5,6 +5,7 @@ import Foundation
 // aure-eval: run golden cases through the real correction pipeline.
 //
 //   swift run aure-eval --server http://127.0.0.1:18080 [--set eval/golden] [--limit N] [--verbose]
+//                       [--ollama qwen3:4b]              (use a local Ollama model instead of --server)
 //                       [--prompt aure|grammarlyAPIO|minimalTaxonomy]
 //                       [--thresholds 0,0.5,0.7,0.9]     (one model call per case, scored at each threshold)
 //                       [--out results.jsonl]            (full per-case output, for eval/score_long.py)
@@ -66,7 +67,11 @@ func norm(_ s: String) -> String {
     s.replacingOccurrences(of: "\u{2019}", with: "'").trimmingCharacters(in: .whitespacesAndNewlines)
 }
 
-let provider = LlamaServerProvider(baseURL: URL(string: server)!, apiKey: ProcessInfo.processInfo.environment["AURE_API_KEY"])
+let provider: any LLMProvider = if let model = arg("--ollama") {
+    try await OllamaClient().provider(for: model)
+} else {
+    LlamaServerProvider(baseURL: URL(string: server)!, apiKey: ProcessInfo.processInfo.environment["AURE_API_KEY"])
+}
 
 // --raw N: print the model's raw answer for case N (0-based) and exit.
 if let n = Int(arg("--raw") ?? ""), n < cases.count {
@@ -175,7 +180,7 @@ latencies.sort()
 func pct(_ a: Int, _ b: Int) -> String { b == 0 ? "n/a" : String(format: "%.0f%% (%d/%d)", 100 * Double(a) / Double(b), a, b) }
 let p50 = latencies.isEmpty ? 0 : latencies[latencies.count / 2]
 let p95 = latencies.isEmpty ? 0 : latencies[min(latencies.count - 1, Int(Double(latencies.count) * 0.95))]
-print("\n== aure-eval: \(cases.count) cases, prompt \(promptStyle.rawValue), server \(server)")
+print("\n== aure-eval: \(cases.count) cases, prompt \(promptStyle.rawValue), \(arg("--ollama").map { "ollama \($0)" } ?? "server \(server)")")
 print("rejected by validator: \(rejected);  latency p50 / p95: \(p50) ms / \(p95) ms")
 if scores.contains(where: { $0.errTotal + $0.cleanTotal > 0 }) {
     print("| min confidence | errors fixed exactly | errors changed | clean kept |")

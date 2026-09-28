@@ -28,6 +28,27 @@ public final class AppState {
         public var isReady: Bool { if case .ready = self { true } else { false } }
     }
 
+    /// What runs the model: the llama-server bundled in the app, or a local Ollama server.
+    public enum Engine: String, CaseIterable, Identifiable {
+        case builtIn, ollama
+
+        public var id: String { rawValue }
+        public var title: String {
+            switch self {
+            case .builtIn: "Built-in (llama.cpp)"
+            case .ollama: "Ollama"
+            }
+        }
+    }
+
+    public enum OllamaStatus: Equatable {
+        case notInstalled
+        case notRunning
+        case running(version: String)
+
+        public var isRunning: Bool { if case .running = self { true } else { false } }
+    }
+
     public enum DownloadState: Equatable {
         case idle
         case downloading(Double)
@@ -47,6 +68,14 @@ public final class AppState {
     public var dialect: Dialect { didSet { defaults.set(dialect.rawValue, forKey: Keys.dialect); coordinator?.invalidateReview() } }
     public var selectedModelID: String? { didSet { defaults.set(selectedModelID, forKey: Keys.model); coordinator?.invalidateReview() } }
     public var paused: Bool { didSet { defaults.set(paused, forKey: Keys.paused); coordinator?.invalidateReview() } }
+    /// Change with `use(_ engine:)`, which also restarts the engine.
+    public internal(set) var engineKind: Engine {
+        didSet { defaults.set(engineKind.rawValue, forKey: Keys.engine); coordinator?.invalidateReview() }
+    }
+    /// The Ollama model in use when `engineKind == .ollama`, e.g. "qwen3:4b".
+    public var ollamaModelName: String? {
+        didSet { defaults.set(ollamaModelName, forKey: Keys.ollamaModel); coordinator?.invalidateReview() }
+    }
     public var onboardingDone: Bool { didSet { defaults.set(onboardingDone, forKey: Keys.onboarding) } }
     /// Suggestion strictness: hide edits the model was less sure about.
     public var minConfidence: Double {
@@ -73,6 +102,11 @@ public final class AppState {
     /// GGUF models other local-LLM tools (LM Studio, Ollama, llama.cpp, ...) already downloaded.
     public private(set) var externalModels: [ExternalModel] = []
     public private(set) var scanningExternalModels = false
+    public private(set) var ollamaStatus: OllamaStatus = .notInstalled
+    /// Chat models the local Ollama server has pulled.
+    public private(set) var ollamaModels: [OllamaModel] = []
+    /// `ollama pull` progress, by Ollama model name.
+    public var ollamaPulls: [String: DownloadState] = [:]
     public let hardware = Hardware.current
     public let store: ModelStore
     public let correction = CorrectionService()
@@ -84,12 +118,17 @@ public final class AppState {
     @ObservationIgnored private let server: LlamaServerProcess?
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private var downloadTasks: [String: Task<Void, Never>] = [:]
+    @ObservationIgnored private let ollama = OllamaClient()
+    @ObservationIgnored private var pullTasks: [String: Task<Void, Never>] = [:]
+    /// The Ollama model Aure asked Ollama to keep loaded, unloaded when switching away.
+    @ObservationIgnored private var loadedOllamaModel: String?
 
     enum Keys {
         static let tone = "tone", dialect = "dialect", model = "selectedModelID", paused = "paused"
         static let onboarding = "onboardingDone", toneDescriptions = "toneDescriptions"
         static let minConfidence = "minConfidence"
         static let writingSuggestions = "writingSuggestionsEnabled"
+        static let engine = "engine", ollamaModel = "ollamaModel"
     }
 
     public init(defaults: UserDefaults = .standard, store: ModelStore = ModelStore()) {
@@ -101,6 +140,7 @@ public final class AppState {
         dialect = Dialect(rawValue: defaults.string(forKey: Keys.dialect) ?? "") ?? .enUS
         selectedModelID = defaults.string(forKey: Keys.model)
         paused = defaults.bool(forKey: Keys.paused)
+        ollamaModelName = defaults.string(forKey: Keys.ollamaModel)
         onboardingDone = defaults.bool(forKey: Keys.onboarding)
         minConfidence = defaults.object(forKey: Keys.minConfidence) as? Double ?? Strictness.balanced.threshold
         let saved = defaults.dictionary(forKey: Keys.toneDescriptions) as? [String: String] ?? [:]
@@ -111,8 +151,19 @@ public final class AppState {
         let logURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Logs/Aure/llama-server.log")
         try? FileManager.default.createDirectory(at: logURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-        server = LlamaServerProcess.locateExecutable().map { LlamaServerProcess(executable: $0, logURL: logURL) }
+        // Ollama-only builds (AURE_ENGINE=ollama scripts/build-app.sh) never run llama-server.
+        let ollamaOnly = Bundle.main.object(forInfoDictionaryKey: "AureEngine") as? String == "ollama"
+        server = ollamaOnly ? nil
+            : LlamaServerProcess.locateExecutable().map { LlamaServerProcess(executable: $0, logURL: logURL) }
+        // Built without llama.cpp (see README): Ollama is the only engine.
+        engineKind = server == nil ? .ollama : Engine(rawValue: defaults.string(forKey: Keys.engine) ?? "") ?? .builtIn
     }
+
+    /// This build ships llama-server.
+    public var hasBuiltInEngine: Bool { server != nil }
+
+    /// Offer the engine choice only when both exist; the built-in engine stays the default.
+    public var showsEngineChoice: Bool { hasBuiltInEngine && ollamaStatus != .notInstalled }
 
     public var recommendedModelID: String {
         ModelCatalog.recommendedID(isAppleSilicon: hardware.isAppleSilicon, memoryGB: hardware.memoryGB)
@@ -169,8 +220,22 @@ public final class AppState {
 
     // MARK: Engine
 
+    public func use(_ engine: Engine) {
+        guard engine != engineKind, engine == .ollama || hasBuiltInEngine else { return }
+        engineKind = engine
+        Task { await startEngine() }
+    }
+
     public func startEngine() async {
         await pushToneDefinitions()
+        if engineKind == .ollama {
+            await startOllama()
+            return
+        }
+        if let loaded = loadedOllamaModel {
+            loadedOllamaModel = nil
+            await ollama.unload(loaded)
+        }
         guard let model = selectedModel, isInstalled(model) else {
             engine = .noModel
             await correction.setProvider(nil)
@@ -198,6 +263,95 @@ public final class AppState {
 
     public func stopEngine() async {
         await server?.stop()
+    }
+
+    private func startOllama() async {
+        await server?.stop()
+        await refreshOllama()
+        guard ollamaStatus.isRunning else {
+            engine = .failed(ollamaStatus == .notInstalled ? "Ollama is not installed" : "Ollama is not running")
+            await correction.setProvider(nil)
+            return
+        }
+        guard let name = ollamaModelName, ollamaModels.contains(where: { $0.name == name }) else {
+            engine = .noModel
+            await correction.setProvider(nil)
+            return
+        }
+        let display = ollamaDisplayName(name)
+        engine = .loading(display)
+        do {
+            let provider = try await ollama.provider(for: name)
+            if let old = loadedOllamaModel, old != name { await ollama.unload(old) }
+            loadedOllamaModel = name
+            await correction.setProvider(provider)
+            // Ollama queues what it cannot run at once (OLLAMA_NUM_PARALLEL).
+            await correction.setMaxParallel(hardware.recommendedParallelSlots)
+            // Ollama loads the model on the first request: warm up before reporting ready,
+            // so a model Ollama cannot run shows as failed instead of failing every check.
+            do {
+                _ = try await correction.check(CheckRequest(text: "This are a warm up.", tone: .formal, dialect: dialect))
+            } catch let e as AureError {
+                // A poor answer is fine for a warm-up; an Ollama error is not.
+                if case .server = e { throw e }
+            }
+            await correction.clearCache()
+            engine = .ready(display)
+        } catch {
+            engine = .failed(error.localizedDescription)
+            await correction.setProvider(nil)
+        }
+    }
+
+    /// Detects Ollama and lists its chat models.
+    public func refreshOllama() async {
+        if let version = await ollama.version() {
+            ollamaStatus = .running(version: version)
+            ollamaModels = ((try? await ollama.models()) ?? []).filter(\.canChat)
+        } else {
+            ollamaStatus = OllamaClient.isInstalled() ? .notRunning : .notInstalled
+            ollamaModels = []
+        }
+    }
+
+    /// Catalog models pulled through Ollama keep their catalog name ("Qwen3 4B").
+    public func ollamaDisplayName(_ name: String) -> String {
+        catalog.first { $0.ollamaName == name }?.name ?? name
+    }
+
+    public func selectOllama(_ name: String) {
+        ollamaModelName = name
+        Task { await startEngine() }
+    }
+
+    /// Downloads a catalog model with `ollama pull` and uses it when done.
+    public func pullWithOllama(_ m: ModelInfo) {
+        guard let name = m.ollamaName, pullTasks[name] == nil else { return }
+        ollamaPulls[name] = .downloading(0)
+        pullTasks[name] = Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await ollama.pull(name) { p in
+                    Task { @MainActor [weak self] in
+                        if case .downloading = self?.ollamaPulls[name] { self?.ollamaPulls[name] = .downloading(p) }
+                    }
+                }
+                ollamaPulls[name] = .idle
+                await refreshOllama()
+                selectOllama(name)
+            } catch {
+                ollamaPulls[name] = Task.isCancelled ? .idle : .failed(error.localizedDescription)
+            }
+            pullTasks[name] = nil
+        }
+    }
+
+    /// Ollama keeps the partial download and resumes it on the next pull.
+    public func cancelPull(_ m: ModelInfo) {
+        guard let name = m.ollamaName else { return }
+        pullTasks[name]?.cancel()
+        pullTasks[name] = nil
+        ollamaPulls[name] = .idle
     }
 
     public func select(_ model: ModelInfo) {

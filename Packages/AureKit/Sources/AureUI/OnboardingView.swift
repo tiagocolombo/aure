@@ -60,13 +60,19 @@ struct OnboardingView: View {
             Text("Choose a model").font(.title2.bold())
             Text("Detected \(app.hardware.cpuName), \(Int(app.hardware.memoryGB.rounded())) GB. You can change this later in Settings → Models.")
                 .font(.callout).foregroundStyle(.secondary)
-            List {
-                ForEach(app.catalog) { m in
-                    ModelRow(model: m)
+            EnginePicker()
+            if app.engineKind == .ollama && !app.ollamaStatus.isRunning {
+                OllamaUnavailableView().frame(maxHeight: .infinity)
+            } else {
+                List {
+                    ForEach(app.catalog) { m in
+                        ModelRow(model: m)
+                    }
                 }
+                .listStyle(.inset(alternatesRowBackgrounds: true))
             }
-            .listStyle(.inset(alternatesRowBackgrounds: true))
         }
+        .task { await app.refreshOllama() }
     }
 
     var done: some View {
@@ -86,7 +92,11 @@ struct OnboardingView: View {
     }
 
     var modelReadyOrDownloading: Bool {
-        app.installedModels.isEmpty == false || app.downloads.values.contains { if case .downloading = $0 { true } else { false } }
+        if app.engineKind == .ollama {
+            return app.ollamaModelName != nil
+                || app.ollamaPulls.values.contains { if case .downloading = $0 { true } else { false } }
+        }
+        return app.installedModels.isEmpty == false || app.downloads.values.contains { if case .downloading = $0 { true } else { false } }
             || app.selectedModel != nil
     }
 
