@@ -3,6 +3,7 @@
 #
 #   scripts/make-dmg.sh            # builds a universal release app first
 #   AURE_SKIP_BUILD=1 scripts/make-dmg.sh   # package the existing build/Aure.app
+#   AURE_ENGINE=ollama scripts/make-dmg.sh  # Ollama-only app (no llama.cpp)
 #
 # Output: dist/Aure-<version>.dmg
 set -euo pipefail
@@ -11,7 +12,10 @@ root="$AURE_ROOT"
 app="$root/build/Aure.app"
 
 if [ "${AURE_SKIP_BUILD:-0}" != 1 ]; then
-  [ -x "$root/build/llama/llama-server" ] || "$root/scripts/build-llama.sh"
+  # AURE_ENGINE=ollama (read by build-app.sh) needs no llama-server.
+  if [ "${AURE_ENGINE:-llama}" != ollama ]; then
+    [ -x "$root/build/llama/llama-server" ] || "$root/scripts/build-llama.sh"
+  fi
   "$root/scripts/build-app.sh" release
 fi
 [ -d "$app" ] || { echo "error: $app not found"; exit 1; }

@@ -2,12 +2,14 @@
 # Build Aure.app from the Swift package (no Xcode project needed).
 #
 #   scripts/build-app.sh [debug|release]      default: release
+#   AURE_ENGINE=ollama scripts/build-app.sh   no llama.cpp: run models with Ollama
 #
 # Output: build/Aure.app
 # - universal (arm64 + x86_64) when both slices build; set AURE_ARCHS=native
 #   to build only for this machine (faster during development).
 # - embeds build/llama/llama-server into Contents/Helpers when it exists
-#   (run scripts/build-llama.sh first).
+#   (run scripts/build-llama.sh first). With AURE_ENGINE=ollama nothing is
+#   embedded and the app uses a local Ollama server (https://ollama.com) only.
 # - signs with the stable "Aure Local" identity when it exists in the
 #   keychain (scripts/bootstrap.sh creates it), else ad-hoc with a warning:
 #   ad-hoc signatures change every build, so macOS forgets the Accessibility
@@ -20,6 +22,11 @@ pkg="$root/Packages/AureKit"
 out="$root/build"
 app="$out/Aure.app"
 archs="${AURE_ARCHS:-universal}"
+engine="${AURE_ENGINE:-llama}"
+case "$engine" in
+  llama|ollama) ;;
+  *) echo "AURE_ENGINE must be llama or ollama (got: $engine)"; exit 1 ;;
+esac
 # Releases pass AURE_VERSION (scripts/next-version.sh); otherwise use the source version.
 version="${AURE_VERSION:-$(sed -n 's/.*source = "\(.*\)".*/\1/p' "$pkg/Sources/AureCore/AureCore.swift")}"
 
@@ -61,10 +68,14 @@ cp -R "$bin_dir/Sparkle.framework" "$app/Contents/Frameworks/"
 sed "s/__VERSION__/$version/g" "$root/Resources/Info.plist" > "$app/Contents/Info.plist"
 cp "$root/Resources/AppIcon.icns" "$app/Contents/Resources/"
 
-if [ -x "$root/build/llama/llama-server" ]; then
+if [ "$engine" = "ollama" ]; then
+  # The app reads this key and never looks for llama-server.
+  /usr/libexec/PlistBuddy -c "Add :AureEngine string ollama" "$app/Contents/Info.plist"
+  echo "==> Ollama-only build: no llama-server embedded"
+elif [ -x "$root/build/llama/llama-server" ]; then
   cp "$root/build/llama/llama-server" "$app/Contents/Helpers/llama-server"
 else
-  echo "warning: build/llama/llama-server missing — run scripts/build-llama.sh (the app will look for llama-server on PATH)"
+  echo "warning: build/llama/llama-server missing — run scripts/build-llama.sh, or build with AURE_ENGINE=ollama (the app will look for llama-server on PATH)"
 fi
 
 "$root/scripts/sign-app.sh" "$app"

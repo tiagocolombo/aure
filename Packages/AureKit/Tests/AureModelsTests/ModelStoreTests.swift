@@ -98,3 +98,18 @@ final class StubProtocol: URLProtocol, @unchecked Sendable {
         #expect(store.importedModels(catalog: []).map(\.lastPathComponent) == [src.lastPathComponent])
     }
 }
+
+@Suite struct OllamaNameTests {
+    @Test func catalogModelsMapToHuggingFacePulls() {
+        let names = ModelCatalog.load().map(\.ollamaName)
+        #expect(names.contains("hf.co/Qwen/Qwen3-4B-GGUF:Q4_K_M"))
+        #expect(names.contains("hf.co/bartowski/Qwen_Qwen3-0.6B-GGUF:Q4_K_M"))
+        #expect(!names.contains(nil))
+    }
+
+    @Test func importedFilesHaveNoOllamaName() {
+        let m = ModelInfo(id: "file:x.gguf", name: "x", repo: "", file: "x.gguf", family: "custom", summary: "",
+                          minRAMGB: 0, license: "", bytes: 0, sha256: "", url: URL(fileURLWithPath: "/tmp/x.gguf"))
+        #expect(m.ollamaName == nil)
+    }
+}

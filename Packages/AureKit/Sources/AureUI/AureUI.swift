@@ -145,7 +145,14 @@ struct MenuContent: View {
 
             Toggle("Pause Aure", isOn: $app.paused).toggleStyle(.switch).controlSize(.small)
 
-            if !app.installedModels.isEmpty || app.selectedModel != nil {
+            if app.engineKind == .ollama {
+                if !app.ollamaModels.isEmpty {
+                    Picker("Model", selection: Binding(get: { app.ollamaModelName ?? "" }, set: { app.selectOllama($0) })) {
+                        ForEach(app.ollamaModels) { m in Text(app.ollamaDisplayName(m.name)).tag(m.name) }
+                    }
+                    .controlSize(.small)
+                }
+            } else if !app.installedModels.isEmpty || app.selectedModel != nil {
                 // Catalog models, plus the imported / other-app model in use so the picker never shows blank.
                 let choices = app.installedModels + (app.selectedModel.map { m in
                     app.installedModels.contains { $0.id == m.id } ? [] : [m]

@@ -24,6 +24,14 @@ public struct ModelInfo: Codable, Identifiable, Hashable, Sendable {
         self.summary = summary; self.minRAMGB = minRAMGB; self.license = license; self.bytes = bytes
         self.sha256 = sha256; self.url = url
     }
+
+    /// The same weights pulled through Ollama: "hf.co/<repo>:<quant>", e.g.
+    /// "hf.co/Qwen/Qwen3-4B-GGUF:Q4_K_M". Nil for models not from Hugging Face.
+    public var ollamaName: String? {
+        guard !repo.isEmpty, file.lowercased().hasSuffix(".gguf"),
+              let quant = file.dropLast(5).split(separator: "-").last, quant.first?.isLetter == true else { return nil }
+        return "hf.co/\(repo):\(quant)"
+    }
 }
 
 public enum ModelCatalog {

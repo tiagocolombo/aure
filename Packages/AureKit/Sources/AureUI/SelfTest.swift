@@ -4,6 +4,7 @@ import Foundation
 
 /// `Aure.app/Contents/MacOS/Aure --selftest ["text"] [--model <id>]`
 /// `--model` takes a catalog id or "path:/abs/file.gguf" (a model from another app).
+/// `--ollama <name>` runs through a local Ollama server instead, e.g. `--ollama qwen3:4b`.
 /// Headless end-to-end check of the packaged app: finds the bundled
 /// llama-server, loads the selected (or recommended, installed) model,
 /// runs one correction and prints the result. Exit code 0 on success.
@@ -25,21 +26,34 @@ enum SelfTest {
                     .joined(separator: ", ")))
             // --model <id>: use a specific model for this run only (catalog id or "path:/abs/file.gguf").
             let savedModelID = state.selectedModelID
+            let savedEngine = state.engineKind, savedOllamaModel = state.ollamaModelName
             if let m = args.firstIndex(of: "--model"), m + 1 < args.count {
                 state.selectedModelID = args[m + 1]
+                if state.hasBuiltInEngine { state.engineKind = .builtIn }
             }
-            if state.selectedModel.map(state.isInstalled) != true {
+            if let o = args.firstIndex(of: "--ollama"), o + 1 < args.count {
+                state.engineKind = .ollama
+                state.ollamaModelName = args[o + 1]
+            }
+            if state.engineKind == .ollama {
+                await state.refreshOllama()
+                print("ollama: \(state.ollamaStatus), models: "
+                      + (state.ollamaModels.isEmpty ? "none" : state.ollamaModels.map(\.name).joined(separator: ", ")))
+                print("model: \(state.ollamaModelName.map(state.ollamaDisplayName) ?? "none selected") (Ollama)")
+            } else if state.selectedModel.map(state.isInstalled) != true {
                 let pick = state.catalog.first { $0.id == state.recommendedModelID && state.isInstalled($0) }
                     ?? state.installedModels.first
                 state.selectedModelID = pick?.id
             }
-            print("model: \(state.selectedModel?.name ?? "none installed")")
+            if state.engineKind == .builtIn { print("model: \(state.selectedModel?.name ?? "none installed")") }
             let started = Date()
             await state.startEngine()
             print("engine: \(state.engine.label) in \(Int(Date().timeIntervalSince(started) * 1000)) ms")
             guard state.engine.isReady else {
                 await state.stopEngine()
                 state.selectedModelID = savedModelID
+                state.engineKind = savedEngine
+                state.ollamaModelName = savedOllamaModel
                 exit(1)
             }
             var failed = false
@@ -79,6 +93,8 @@ enum SelfTest {
             await state.stopEngine()
             // The self-test must not change the model the user picked in the app.
             state.selectedModelID = savedModelID
+            state.engineKind = savedEngine
+            state.ollamaModelName = savedOllamaModel
             exit(failed ? 1 : 0)
         }
         RunLoop.main.run()

@@ -48,6 +48,7 @@ Recorded with Qwen3 4B on an Apple Silicon Mac. Suggestions come from the model,
 - A "Sounds AI-written" label when the model judges text to read like generic AI output. Rewrites prefer plain words, and em dashes are blocked during generation. The judgment is the model's, not a detector you can rely on.
 - In-app updates: Aure can check GitHub Releases once a day, notify you, and install a new version from the menu bar or Settings.
 - Local GGUF inference through [llama.cpp](https://github.com/ggml-org/llama.cpp), with Metal on Apple Silicon and CPU inference on Intel.
+- [Ollama](https://ollama.com/download) as an alternative engine. When Ollama is installed, **Settings → Models → Run models with** switches between the built-in llama.cpp engine (the default) and Ollama. With Ollama, Aure's tested models download through `ollama pull`, and every chat model Ollama already has can be used. Two features need llama.cpp: Ollama cannot block em dashes during generation, and older Ollama versions don't report the token probabilities behind confidence scores.
 - Model downloads with checksum verification, model switching, and local GGUF import. An imported model must be compatible with the runtime and prompting; importing a file does not guarantee useful corrections.
 - Models you already downloaded with LM Studio, Ollama, llama.cpp (`-hf` cache), the Hugging Face cache, Jan, or GPT4All appear under **Settings → Models → From other apps on this Mac** and are used in place, without copying. Aure's prompts are tuned and evaluated on the Qwen3 models in its catalog; other models may fix fewer errors or change correct text. Extra folders can be added with `AURE_EXTRA_MODEL_DIRS` (colon-separated).
 
@@ -69,8 +70,8 @@ You need:
 
 - macOS 14 Sonoma or newer.
 - Apple's Swift 6 toolchain (Xcode 16+ or compatible Command Line Tools), with the macOS SDK selected through `xcode-select`.
-- Git and CMake. If you use Homebrew, `brew install cmake` installs CMake.
-- Internet access to fetch llama.cpp and download a model, plus disk space for build output and model weights.
+- Git and CMake. If you use Homebrew, `brew install cmake` installs CMake. CMake is not needed for an [Ollama-only build](#build-with-ollama-instead-of-llamacpp).
+- Internet access to fetch llama.cpp (not needed for the Ollama-only build) and download a model, plus disk space for build output and model weights.
 
 Apple Silicon is the preferred development target. The scripts also include an Intel CPU build path; its performance and app compatibility need separate testing. Model size, memory use, and latency vary by hardware and input length. Catalog downloads range from roughly 0.5 GB to 3 GB; inference needs additional memory.
 
@@ -89,6 +90,23 @@ open build/Aure.app
 ```
 
 The build embeds `llama-server` when `build/llama/llama-server` exists. Build the helper first. The scripts use Swift Package Manager; no generated Xcode project is required.
+
+### Build with Ollama instead of llama.cpp
+
+If llama.cpp can't be installed or run on your Mac (some company policies block unapproved binaries), build Aure without it and run models with [Ollama](https://ollama.com/download):
+
+```sh
+git clone https://github.com/tiagocolombo/aure.git
+cd aure
+
+# No llama.cpp fetch and no CMake: the app contains no llama-server.
+AURE_ENGINE=ollama AURE_ARCHS=native scripts/build-app.sh release
+open build/Aure.app
+```
+
+Keep Ollama running. In onboarding or **Settings → Models**, download one of Aure's tested models, which Aure fetches with `ollama pull hf.co/<repo>:<quant>`, or pick a model you already pulled. Aure connects to `OLLAMA_HOST`, or `127.0.0.1:11434` by default.
+
+Aure's prompts are tuned on the Qwen3 models in its catalog. Other Ollama models may fix fewer errors or change correct text. Remove models with `ollama rm <name>`.
 
 ### Your first check
 
@@ -109,6 +127,12 @@ To build both architecture slices and create a local DMG:
 scripts/build-llama.sh
 scripts/build-app.sh release
 AURE_SKIP_BUILD=1 scripts/make-dmg.sh
+```
+
+For an Ollama-only DMG, which skips llama.cpp entirely, run:
+
+```sh
+AURE_ENGINE=ollama scripts/make-dmg.sh
 ```
 
 The output is `dist/Aure-<version>.dmg`. These are local development packages, not notarized releases. macOS may block an unnotarized downloaded build; only approve software you built or trust. A locally generated DMG is not evidence of testing on another Mac.
