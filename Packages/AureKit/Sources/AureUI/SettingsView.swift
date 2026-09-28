@@ -19,6 +19,7 @@ struct SettingsView: View {
 struct GeneralSettings: View {
     @Environment(AppState.self) private var app
     @State private var launchAtLogin = false
+    @State private var autoUpdates = false
 
     var body: some View {
         @Bindable var app = app
@@ -41,6 +42,17 @@ struct GeneralSettings: View {
             Toggle("Launch Aure at login", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { _, v in app.launchAtLogin = v }
             LabeledContent("Aure Pad shortcut", value: "⌥⌘P (from the menu bar)")
+            if app.updates.isEnabled {
+                Section("Updates") {
+                    Toggle("Check for updates automatically", isOn: $autoUpdates)
+                        .onChange(of: autoUpdates) { _, v in app.updates.automaticallyChecks = v }
+                    Text("Once a day Aure asks GitHub whether a newer release exists. Your writing is never sent.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button(app.updates.availableVersion.map { "Install Aure \($0)…" } ?? "Check for Updates…") {
+                        app.updates.checkForUpdates()
+                    }
+                }
+            }
             Section("Checking in other apps") {
                 AccessibilityStatusView()
                 Text("A small bubble appears in the corner of the field you are typing in: green when it looks good, yellow for optional writing improvements, red for errors (which take priority). Click it to review and replace. Password fields, terminals, code editors and password managers are never read.")
@@ -48,7 +60,10 @@ struct GeneralSettings: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear { launchAtLogin = app.launchAtLogin }
+        .onAppear {
+            launchAtLogin = app.launchAtLogin
+            autoUpdates = app.updates.automaticallyChecks
+        }
     }
 }
 

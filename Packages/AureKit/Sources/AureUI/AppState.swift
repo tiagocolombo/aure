@@ -76,6 +76,7 @@ public final class AppState {
     public let hardware = Hardware.current
     public let store: ModelStore
     public let correction = CorrectionService()
+    public let updates = UpdateController()
     public var lastResult: CheckResult?
     public var coordinator: CheckCoordinator?
     public var accessibilityTrusted = AccessibilityPermission.isTrusted

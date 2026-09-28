@@ -24,6 +24,17 @@ opts=(--force --options runtime --sign "$identity")
 for h in "$app"/Contents/Helpers/*; do
   if [ -f "$h" ]; then apple codesign "${opts[@]}" "$h"; fi
 done
+
+# Sparkle, inside-out as its documentation describes (never --deep).
+sparkle="$app/Contents/Frameworks/Sparkle.framework"
+if [ -d "$sparkle" ]; then
+  b="$sparkle/Versions/B"
+  apple codesign "${opts[@]}" "$b/XPCServices/Installer.xpc"
+  apple codesign "${opts[@]}" --preserve-metadata=entitlements "$b/XPCServices/Downloader.xpc"
+  apple codesign "${opts[@]}" "$b/Autoupdate"
+  apple codesign "${opts[@]}" "$b/Updater.app"
+  apple codesign "${opts[@]}" "$sparkle"
+fi
 apple codesign "${opts[@]}" --entitlements "$ent" "$app"
 apple codesign --verify --deep --strict "$app"
 echo "==> signed with: $identity"

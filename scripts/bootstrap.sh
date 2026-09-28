@@ -49,4 +49,11 @@ security import "$tmp/aure.p12" -k "$keychain" -P "$pass" -T /usr/bin/codesign >
 echo "==> trusting it for code signing (macOS may ask for your password)"
 security add-trusted-cert -r trustRoot -p codeSign -k "$keychain" "$tmp/cert.pem"
 
+# scripts/setup-release-secrets.sh keeps a copy so CI signs releases with the
+# same identity (then Accessibility stays granted across updates).
+if [ -n "${AURE_P12_OUT:-}" ]; then
+  cp "$tmp/aure.p12" "$AURE_P12_OUT"
+  printf '%s' "$pass" > "$AURE_P12_OUT.password"
+fi
+
 security find-identity -v -p codesigning | grep "\"$name\"" && echo "==> done"

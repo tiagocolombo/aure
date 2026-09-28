@@ -6,5 +6,11 @@
          are incompatible with the App Sandbox. Distributed as a DMG. -->
     <key>com.apple.security.app-sandbox</key><false/>
     <key>com.apple.security.automation.apple-events</key><true/>
+    <!-- Library validation only accepts code from the app's own Apple team.
+         Self-signed ("Aure Local") and ad-hoc builds have no team ID, so without
+         this the hardened runtime refuses to load the bundled Sparkle.framework
+         (the app aborts at launch). DYLD_* environment injection stays blocked.
+         Drop this once releases are signed with an Apple Developer ID. -->
+    <key>com.apple.security.cs.disable-library-validation</key><true/>
 </dict>
 </plist>

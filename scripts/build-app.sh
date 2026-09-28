@@ -20,7 +20,8 @@ pkg="$root/Packages/AureKit"
 out="$root/build"
 app="$out/Aure.app"
 archs="${AURE_ARCHS:-universal}"
-version="$(sed -n 's/.*string = "\(.*\)".*/\1/p' "$pkg/Sources/AureCore/AureCore.swift")"
+# Releases pass AURE_VERSION (scripts/next-version.sh); otherwise use the source version.
+version="${AURE_VERSION:-$(sed -n 's/.*source = "\(.*\)".*/\1/p' "$pkg/Sources/AureCore/AureCore.swift")}"
 
 # Branding is required, not an optional copy that silently ships a generic icon.
 "$root/scripts/test-brand-assets.sh"
@@ -52,6 +53,10 @@ apple lipo -create "${slices[@]}" -output "$app/Contents/MacOS/Aure"
 for b in "$bin_dir"/*.bundle; do
   if [ -e "$b" ]; then cp -R "$b" "$app/Contents/Resources/"; fi
 done
+
+# Sparkle (in-app updates) is a binary framework SwiftPM places next to the executable.
+mkdir -p "$app/Contents/Frameworks"
+cp -R "$bin_dir/Sparkle.framework" "$app/Contents/Frameworks/"
 
 sed "s/__VERSION__/$version/g" "$root/Resources/Info.plist" > "$app/Contents/Info.plist"
 cp "$root/Resources/AppIcon.icns" "$app/Contents/Resources/"
