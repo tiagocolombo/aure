@@ -104,7 +104,7 @@ AURE_ENGINE=ollama AURE_ARCHS=native scripts/build-app.sh release
 open build/Aure.app
 ```
 
-Keep Ollama running. In onboarding or **Settings → Models**, download one of Aure's tested models, which Aure fetches with `ollama pull hf.co/<repo>:<quant>`, or pick a model you already pulled. Aure connects to `OLLAMA_HOST`, or `127.0.0.1:11434` by default.
+Keep Ollama running. In onboarding or **Settings → Models**, download one of Aure's tested models, which Aure fetches with `ollama pull hf.co/<repo>:<quant>`, or pick a model you already pulled. Aure connects to `OLLAMA_HOST`, or `127.0.0.1:11434` by default. Only a server on this Mac is used: an `OLLAMA_HOST` on another machine is ignored, and Aure sends no text to a port that belongs to another user's program.
 
 Aure's prompts are tuned on the Qwen3 models in its catalog. Other Ollama models may fix fewer errors or change correct text. Remove models with `ollama rm <name>`.
 
@@ -141,12 +141,12 @@ You don't need Nix or direnv. The maintainer's optional Nix setup depends on a p
 
 ## Privacy and offline use
 
-After installing the runtime and downloading or importing a model, grammar inference runs locally. The app launches `llama-server` on `127.0.0.1` with a per-process API key; the current app does not use a cloud inference provider. Model downloads contact Hugging Face and its download infrastructure.
+After installing the runtime and downloading or importing a model, grammar inference runs locally. The app launches `llama-server` on `127.0.0.1` with a per-launch API key, inside a macOS sandbox that keeps it out of your files (except the model's folder), off the network and away from Aure's Accessibility permission; the current app does not use a cloud inference provider. The Ollama engine only talks to an Ollama server on this Mac run by your account. Model downloads contact Hugging Face and its download infrastructure.
 
 Offline inference does **not** make the app you are writing in offline. Google Docs, Slack, browser pages, clipboard managers, and other software may transmit or retain their own copies of your writing.
 
 - Cross-app checking reads focused text through Accessibility. The code skips recognized secure text fields and a built-in list of password managers, terminals, and code editors; that list is not a universal sensitive-data detector. Pause checking when needed.
-- Replacement may temporarily place corrected text on the system clipboard, then restore the previous contents. Clipboard-monitoring software can still observe it.
+- Replacement may temporarily place corrected text on the system clipboard, then restore the previous contents. That text stays on this Mac (it is not sent to your other devices through Universal Clipboard) and is marked so clipboard managers that follow the nspasteboard.org conventions skip it; other clipboard-monitoring software can still observe it. A password copied by a password manager is not put back.
 - If you allow update checks, Aure downloads `appcast.xml` from GitHub Releases once a day. The request carries the app version and no writing or system profile.
 - Models live in `~/Library/Application Support/Aure/Models/`. Preferences use macOS UserDefaults. The inference process writes a local diagnostic log at `~/Library/Logs/Aure/llama-server.log`, and the app logs actions (never your text) to `~/Library/Logs/Aure/aure.log`.
 - Do not publish raw logs, screenshots, or evaluation output without reviewing them for private text and local paths.

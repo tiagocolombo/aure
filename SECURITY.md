@@ -36,5 +36,8 @@ Out of scope:
 ## What Aure is designed to do
 
 - Your writing is processed on your Mac and is not sent over the network. The only network use is downloading a model you choose.
-- `llama-server` listens only on `127.0.0.1`, on a random port, and requires a per-launch API key.
+- `llama-server` listens only on `127.0.0.1`, on a random port, and requires a per-launch API key passed in a file only your account can read. Its slots endpoint, which would return the text being checked, is off. Aure only trusts the port once it has confirmed its own helper is listening on it.
+- `llama-server` does not inherit Aure's Accessibility permission (it is spawned as its own TCC responsible process), gets an empty environment and no open files, and runs in a sandbox: no reading your home folder beyond the model's folder, no writing outside the temporary folders, no outgoing connections, no starting other programs. A release build only runs the helper in its own bundle, signed with the app's certificate.
+- With the Ollama engine, text only goes to `127.0.0.1`/`localhost`, and only when the server on that port runs under your account.
+- A model id saved in preferences only loads files inside the folders Aure scans for models. Model output is stripped of invisible characters (zero-width, bidirectional and tag characters) your text did not contain, so a review shows every change.
 - Aure does not store the text it checks.
