@@ -42,7 +42,8 @@ Recorded with Qwen3 4B on an Apple Silicon Mac. Suggestions come from the model,
 ## What works today
 
 - Aure Pad: paste or type text, check grammar, request a rewrite, review a diff, accept or dismiss edits, and copy the result.
-- Informal, formal, and strict formal tone presets, with editable descriptions and US/Canadian English settings.
+- Informal, formal, and strict formal tone presets, with editable descriptions.
+- Writing in English (US, UK, or Canada) or Brazilian Portuguese. Aure's own interface stays in English. By default Aure detects the language of each text on your Mac: Apple's language recognizer tells English from Portuguese, and the system spell checker's US, UK, and Canadian dictionaries decide the English spelling. Short or unclear text keeps the last detected language. You can also pick one fixed language in Settings → General. Portuguese support is new and has been checked less than English.
 - A menu bar app with pause controls, model status, and a suggestion bubble for accessible text fields in other apps.
 - Red bubbles indicate grammar corrections; yellow bubbles indicate optional model-generated writing alternatives when no corrections remain. The popup separates the two and lets you preview, apply, or dismiss suggestions. Automatic writing alternatives are currently limited to text up to 1,200 UTF-16 units.
 - A "Sounds AI-written" label when the model judges text to read like generic AI output. Rewrites prefer plain words, and em dashes are blocked during generation. The judgment is the model's, not a detector you can rely on.

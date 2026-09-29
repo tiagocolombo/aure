@@ -17,6 +17,10 @@ It covers Slack-style and email-style text, confused words (your/you're, its/it'
 whose/who's), agreement, pronoun case, word choice and Canadian spelling. This is still small; the goal
 is 150+ (issue #11).
 
+Language sets: `eval/languages/en_GB.jsonl` (British spelling that must stay unchanged) and
+`eval/languages/pt_BR.jsonl` (Brazilian Portuguese). They are kept apart from the golden set so the
+results below stay comparable; run them with `--set eval/languages`. No results are recorded yet.
+
 "Errors fixed" means an exact match with an acceptable answer (after ignoring a trailing period and
 first-letter case). Hardware: Intel i7-8850H, 16 GB, CPU only (no GPU). Apple Silicon is several
 times faster.

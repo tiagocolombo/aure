@@ -1,0 +1,4 @@
+{"text": "We travelled to the theatre to analyse the programme.", "tone": "formal", "dialect": "en_GB", "expect": null}
+{"text": "The colour of the logo should match the centre panel, as we organised.", "tone": "formal", "dialect": "en_GB", "expect": null}
+{"text": "Whilst the licence is grey-listed, the team are reviewing it.", "tone": "formal", "dialect": "en_GB", "expect": null}
+{"text": "Your welcome to join, but the defence team are late and its a long meeting.", "tone": "formal", "dialect": "en_GB", "expect": ["You're welcome to join, but the defence team are late and it's a long meeting.", "You're welcome to join, but the defence team is late and it's a long meeting."]}

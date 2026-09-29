@@ -28,9 +28,10 @@ struct GeneralSettings: View {
             Picker("Default tone", selection: $app.tone) {
                 ForEach(Tone.allCases) { Text($0.displayName).tag($0) }
             }
-            Picker("English", selection: $app.dialect) {
-                ForEach(Dialect.allCases) { Text($0.displayName).tag($0) }
+            Picker("Writing language", selection: $app.dialect) {
+                ForEach(DialectSetting.allCases) { Text($0.displayName).tag($0) }
             }
+            Text(languageHelp).font(.caption).foregroundStyle(.secondary)
             Picker("Suggestions", selection: Binding(get: { Strictness.nearest(app.minConfidence) },
                                                      set: { app.minConfidence = $0.threshold })) {
                 ForEach(Strictness.allCases) { Text($0.title).tag($0) }
@@ -65,6 +66,17 @@ struct GeneralSettings: View {
             launchAtLogin = app.launchAtLogin
             autoUpdates = app.updates.automaticallyChecks
         }
+    }
+}
+
+extension GeneralSettings {
+    var languageHelp: String {
+        var help = "The language of the text Aure checks; Aure itself stays in English."
+        if app.dialect == .automatic {
+            help += " Aure tells English from Brazilian Portuguese, and US, UK and Canadian spelling, on your Mac."
+            if let d = app.detectedDialect { help += " Last detected: \(d.displayName)." }
+        }
+        return help
     }
 }
 
