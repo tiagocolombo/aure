@@ -53,4 +53,40 @@ import Testing
                                         fallback: .enUS)
         #expect(uk.dialect != .enUS)
     }
+
+    struct CorpusCase: Decodable {
+        var text: String
+        var expect: String
+        var fallback: String
+    }
+
+    /// eval/languages/detection.jsonl: language must always be right; the English
+    /// variant depends on the Mac's dictionaries, so it only needs to be mostly right.
+    @Test @MainActor func detectionCorpus() throws {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("eval/languages/detection.jsonl")
+        let cases = try String(contentsOf: url, encoding: .utf8).split(separator: "\n").map {
+            try JSONDecoder().decode(CorpusCase.self, from: Data($0.utf8))
+        }
+        #expect(cases.count > 50)
+        var variantHits = 0, variantTotal = 0
+        for c in cases {
+            let fallback = try #require(Dialect(rawValue: c.fallback))
+            let r = DialectDetector.detect(c.text, fallback: fallback)
+            if c.expect == "fallback" {
+                #expect(r == .init(dialect: fallback, detected: false), "\(c.text)")
+                continue
+            }
+            let want = try #require(Dialect(rawValue: c.expect))
+            #expect(r.detected, "\(c.text)")
+            #expect(r.dialect.language == want.language, "\(c.text)")
+            if want.language == .english {
+                variantTotal += 1
+                if r.dialect == want { variantHits += 1 }
+            }
+        }
+        #expect(Double(variantHits) >= 0.8 * Double(variantTotal), "\(variantHits)/\(variantTotal) English variants")
+    }
 }

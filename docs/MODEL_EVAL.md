@@ -19,7 +19,34 @@ is 150+ (issue #11).
 
 Language sets: `eval/languages/en_GB.jsonl` (British spelling that must stay unchanged) and
 `eval/languages/pt_BR.jsonl` (Brazilian Portuguese). They are kept apart from the golden set so the
-results below stay comparable; run them with `--set eval/languages`. No results are recorded yet.
+results below stay comparable; run them with `--set eval/languages`. No model results are recorded yet.
+
+### Language detection (2026-09-29, stand-in run, not on a Mac)
+
+`eval/languages/detection.jsonl`: 70 invented texts (Brazilian Portuguese with and without accents,
+slang and English loanwords; US, UK and Canadian English; neutral English that must keep the preferred
+variant; text too short to judge). On a Mac, `DialectDetectorTests.detectionCorpus` runs the real
+detector over it.
+
+Without a Mac, `eval/detect_proxy.mjs` runs the same decision logic with open-source stand-ins: franc
+for Apple's language recognizer and Hunspell dictionaries for the system spell checker.
+
+| group | top language guess | with 0.6 cut on franc scores |
+|---|---|---|
+| pt_BR | 25/25 | 22/25 |
+| en_US | 11/11 | 8/11 |
+| en_GB | 12/12 | 8/12 |
+| en_CA | 5/5 | 3/5 |
+| neutral English keeps preferred variant | 9/9 | 9/9 |
+| short text keeps fallback | 8/8 | 8/8 |
+| **total** | **70/70** | 55/70 |
+
+About 0.2 ms per text. Every miss in the second column came from the language step falling back, not
+from the spelling vote: franc's scores are distances, not probabilities, so the 0.6 cut is
+much stricter for franc than for Apple's recognizer. Its results only show how much depends on that
+threshold; check it with the Mac test. In Hunspell, the UK dictionary rejects -ize ("organize"), which
+separates UK from Canadian text. If Apple's UK dictionary accepts -ize, UK and Canadian text that differ
+only there tie, and the preferred variant wins.
 
 "Errors fixed" means an exact match with an acceptable answer (after ignoring a trailing period and
 first-letter case). Hardware: Intel i7-8850H, 16 GB, CPU only (no GPU). Apple Silicon is several
