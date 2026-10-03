@@ -23,6 +23,11 @@ struct PadView: View {
                 .pickerStyle(.segmented)
                 .frame(maxWidth: 340)
                 Spacer()
+                if let r = result {
+                    Text(r.request.dialect.displayName)
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        .help(app.dialect == .automatic ? "Detected from your text" : "Settings → General → Writing language")
+                }
                 HStack(spacing: 6) {
                     StatusDot(status: app.engine)
                     Text(app.engine.label).font(.caption).foregroundStyle(.secondary).lineLimit(1)

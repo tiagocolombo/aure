@@ -10,6 +10,7 @@ import Foundation
 //                       [--thresholds 0,0.5,0.7,0.9]     (one model call per case, scored at each threshold)
 //                       [--out results.jsonl]            (full per-case output, for eval/score_long.py)
 //                       [--parallel N]                   (paragraphs checked at once; server needs -np N)
+//   swift run aure-eval --detect eval/detection/detection.jsonl   (language detection, no model)
 //
 // Each JSONL line: {"text": "...", "tone": "formal", "dialect": "en_US",
 //                   "expect": ["acceptable output", ...] | null (= must stay unchanged),
@@ -35,6 +36,12 @@ func arg(_ name: String) -> String? {
     let a = CommandLine.arguments
     guard let i = a.firstIndex(of: name), i + 1 < a.count else { return nil }
     return a[i + 1]
+}
+
+// --detect FILE: language detection only, no model (see Detection.swift).
+if let path = arg("--detect") {
+    try runDetection(path)
+    exit(0)
 }
 
 let server = arg("--server") ?? "http://127.0.0.1:18080"
@@ -142,6 +149,9 @@ for (file, c) in cases {
             var missing = (c.keep ?? []).filter { !s.replacement.localizedCaseInsensitiveContains($0) }
             // A template placeholder ("Dear [Name]") is invented content, never acceptable.
             if s.replacement.contains("[") && !c.text.contains("[") { missing.append("(added a [placeholder])") }
+            // A rewrite must stay in the text's language (e.g. never translate Portuguese to English).
+            let language = DialectDetector.detect(s.replacement, fallback: req.dialect)
+            if language.detected, language.dialect.language != req.dialect.language { missing.append("(changed language)") }
             if missing.isEmpty { rw.factsKept += 1 } else { mark = "✘" }
             rw.lengthRatios.append(Double(words(s.replacement)) / Double(max(1, words(c.text))))
             print("\(mark) [\(req.tone.rawValue)/\(c.kind ?? "improve")] \(c.text)\n    → \(s.replacement)"

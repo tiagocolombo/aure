@@ -24,22 +24,82 @@ public enum CheckMode: String, Codable, CaseIterable, Sendable {
     case rewrite
 }
 
-/// Supported English dialects. US is the default.
+/// Languages and spelling variants Aure can check. The app's own interface stays
+/// in English; this is the language of the text being checked. US is the default.
 public enum Dialect: String, Codable, CaseIterable, Sendable, Identifiable {
     case enUS = "en_US"
+    case enGB = "en_GB"
     case enCA = "en_CA"
+    case ptBR = "pt_BR"
+
+    public enum Language: String, Sendable {
+        case english, portuguese
+    }
 
     public var id: String { rawValue }
 
     public var displayName: String {
         switch self {
         case .enUS: "English (US)"
+        case .enGB: "English (UK)"
         case .enCA: "English (Canada)"
+        case .ptBR: "Portuguese (Brazil)"
+        }
+    }
+
+    public var language: Language {
+        switch self {
+        case .enUS, .enGB, .enCA: .english
+        case .ptBR: .portuguese
+        }
+    }
+
+    /// How the prompt names the language, e.g. "a precise \(languageName) copy editor".
+    public var languageName: String {
+        switch language {
+        case .english: "English"
+        case .portuguese: "Brazilian Portuguese"
         }
     }
 
     /// Language code understood by `NSSpellChecker`.
     public var spellCheckerLanguage: String { rawValue }
+
+    public static var english: [Dialect] { allCases.filter { $0.language == .english } }
+}
+
+/// The language setting: a fixed dialect, or detect it from each text.
+public enum DialectSetting: Hashable, Sendable, Identifiable {
+    case automatic
+    case fixed(Dialect)
+
+    public static var allCases: [DialectSetting] { [.automatic] + Dialect.allCases.map { .fixed($0) } }
+
+    public init?(rawValue: String) {
+        if rawValue == "auto" { self = .automatic; return }
+        guard let d = Dialect(rawValue: rawValue) else { return nil }
+        self = .fixed(d)
+    }
+
+    public var rawValue: String {
+        switch self {
+        case .automatic: "auto"
+        case .fixed(let d): d.rawValue
+        }
+    }
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .automatic: "Detect automatically"
+        case .fixed(let d): d.displayName
+        }
+    }
+
+    public var fixed: Dialect? {
+        if case .fixed(let d) = self { d } else { nil }
+    }
 }
 
 public struct CheckRequest: Codable, Hashable, Sendable {

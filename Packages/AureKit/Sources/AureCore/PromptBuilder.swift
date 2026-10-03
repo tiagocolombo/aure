@@ -83,12 +83,30 @@ public enum PromptBuilder {
         switch d {
         case .enUS:
             "Use American English spelling and punctuation (color, center, organize, analyze)."
+        case .enGB:
+            """
+            Use British English spelling and punctuation: -our and -re endings (colour, favour, \
+            centre, theatre), doubled L (travelled, cancelled), -ise or -ize endings as the \
+            writer chose (organise, organize), "analyse", "defence", "licence" (noun), \
+            "programme", "grey", "whilst". Never flag these British spellings as errors, and \
+            never change them to American spelling.
+            """
         case .enCA:
             """
             Use Canadian English spelling: British-style -our and -re endings (colour, favour, \
             centre, theatre), doubled L (travelled, cancelled), "cheque", "defence", \
             but American -ize/-yze endings (organize, realize, analyze). Never flag these \
             Canadian spellings as errors.
+            """
+        case .ptBR:
+            """
+            The text is in Brazilian Portuguese. Keep it in Brazilian Portuguese and never \
+            translate it into English. Follow Brazilian spelling under the current orthographic \
+            agreement (ideia, voo, fato, ação, equipe, registro, ônibus), including accents, \
+            cedilla and crase (à). Check verb agreement (concordância), gender and number \
+            agreement, and commonly confused forms (mas/mais, mal/mau, há/a, por que/porque/\
+            porquê/por quê, onde/aonde). Never flag Brazilian spellings as errors or change \
+            them to European Portuguese.
             """
         }
     }
@@ -99,7 +117,7 @@ public enum PromptBuilder {
                              promptStyle: PromptStyle = .aure,
                              disableThinking: Bool = true) -> Prompt {
         let tone = toneDefinition ?? .default(req.tone)
-        var s = "You are Aure, a precise English copy editor.\n"
+        var s = "You are Aure, a precise \(req.dialect.languageName) copy editor.\n"
 
         switch (req.mode, promptStyle) {
         case (.correct, .grammarlyAPIO):
@@ -119,9 +137,9 @@ public enum PromptBuilder {
             s += """
             Task: proofread the user's text and fix every error: spelling, grammar, punctuation \
             and wrong words. Read each word in context. Pay special attention to commonly confused \
-            words that spell checkers miss (for example your/you're, its/it's, their/there/they're, \
-            then/than, should of/should have, affect/effect, lose/loose), subject-verb agreement \
-            and missing apostrophes. Change only what is wrong and keep everything else exactly \
+            words that spell checkers miss (for example \(confusedExamples(req.dialect.language))), \
+            subject-verb agreement and missing \(req.dialect.language == .english ? "apostrophes" : "accents"). \
+            Change only what is wrong and keep everything else exactly \
             as written, including the writer's capitalization style. If the text has no errors, \
             repeat it exactly.
 
@@ -176,7 +194,7 @@ public enum PromptBuilder {
         }
 
         let suffix = disableThinking ? "\n/no_think" : ""
-        let examples = fewShot(req.mode, req.tone).map {
+        let examples = fewShot(req.mode, req.tone, language: req.dialect.language).map {
             Prompt.Turn(user: $0.text + suffix, assistant: $0.corrected)
         }
         let user = req.text + suffix
@@ -237,11 +255,35 @@ public enum PromptBuilder {
     - Output plain text only: NEVER use Markdown or any markup in the output
     """
 
-    static func fewShot(_ mode: CheckMode, _ tone: Tone) -> [(text: String, corrected: String)] {
-        let raw: String
+    static func confusedExamples(_ language: Dialect.Language) -> String {
+        switch language {
+        case .english:
+            "your/you're, its/it's, their/there/they're, then/than, should of/should have, affect/effect, lose/loose"
+        case .portuguese:
+            "mas/mais, mal/mau, há/a, por que/porque, onde/aonde, a/à, traz/trás, sessão/seção/cessão"
+        }
+    }
+
+    static func fewShot(_ mode: CheckMode, _ tone: Tone,
+                        language: Dialect.Language = .english) -> [(text: String, corrected: String)] {
+        let raw = language == .portuguese ? portugueseFewShot(mode, tone) : englishFewShot(mode, tone)
+        var out: [(text: String, corrected: String)] = []
+        var pending: String?
+        for line in raw.split(separator: "\n").map({ $0.trimmingCharacters(in: .whitespaces) }) where !line.isEmpty {
+            if line.hasPrefix("Text: ") {
+                pending = String(line.dropFirst(6))
+            } else if let t = pending, let corrected = ((try? ResponseParser.parseJSON(line))?.corrected) {
+                out.append((t, corrected))
+                pending = nil
+            }
+        }
+        return out
+    }
+
+    static func englishFewShot(_ mode: CheckMode, _ tone: Tone) -> String {
         switch (mode, tone) {
         case (.correct, .informal):
-            raw = """
+            return """
             Text: hey, their going to be late lol. can u tell the others?
             {"corrected":"hey, they're going to be late lol. can u tell the others?","edits":[{"from":"their","to":"they're","category":"grammar","why":"'they're' means 'they are'"}]}
             Text: sounds good 👍 see you at 3
@@ -252,7 +294,7 @@ public enum PromptBuilder {
             {"corrected":"we should have merged it, let's fix it when you're back","edits":[{"from":"should of","to":"should have","category":"grammar","why":"'should have', not 'should of'"},{"from":"lets","to":"let's","category":"punctuation","why":"Contraction of 'let us'"},{"from":"your","to":"you're","category":"grammar","why":"'you're' means 'you are'"}]}
             """
         case (.correct, _):
-            raw = """
+            return """
             Text: Hi Anna, I wanted to let you know that the report are ready and I will send it tomorow.
             {"corrected":"Hi Anna, I wanted to let you know that the report is ready and I will send it tomorrow.","edits":[{"from":"are","to":"is","category":"grammar","why":"Subject 'report' is singular"},{"from":"tomorow","to":"tomorrow","category":"spelling","why":"Misspelled word"}]}
             Text: Thank you for your help with the proposal.
@@ -263,7 +305,7 @@ public enum PromptBuilder {
             {"corrected":"We received fewer applications than last year.","edits":[{"from":"less","to":"fewer","category":"wordChoice","why":"Use 'fewer' with countable nouns"},{"from":"then","to":"than","category":"wordChoice","why":"'than' is used for comparisons"}]}
             """
         case (.rewrite, .informal):
-            raw = """
+            return """
             Text: I would like to inform you that the meeting has been moved to Friday.
             {"corrected":"Heads up, the meeting moved to Friday.","edits":[{"from":"I would like to inform you that the meeting has been moved","to":"Heads up, the meeting moved","category":"tone","why":"More casual phrasing"}]}
             Text: ok, pushed the fix 👍 can you rerun the tests?
@@ -276,7 +318,7 @@ public enum PromptBuilder {
             {"corrected":"Some news: I'm starting something new, and I'm really grateful.","edits":[]}
             """
         case (.rewrite, .formal):
-            raw = """
+            return """
             Text: hey can u send me the numbers asap, need them for the call
             {"corrected":"Hi, could you please send me the numbers as soon as possible? I need them for the call.","edits":[{"from":"hey can u send me the numbers asap, need them","to":"Hi, could you please send me the numbers as soon as possible? I need them","category":"tone","why":"Professional wording"}]}
             Text: Thank you for the update. I will review the draft tomorrow.
@@ -289,7 +331,7 @@ public enum PromptBuilder {
             {"corrected":"Our product helps teams keep up with changing compliance rules.","edits":[]}
             """
         case (.rewrite, .strictFormal):
-            raw = """
+            return """
             Text: Hi Tom, thanks! We can't make it Monday, can we do Tuesday?
             {"corrected":"Dear Tom, thank you. Unfortunately, we are unable to attend on Monday. Would Tuesday be convenient?","edits":[{"from":"Hi Tom, thanks! We can't make it Monday, can we do Tuesday?","to":"Dear Tom, thank you. Unfortunately, we are unable to attend on Monday. Would Tuesday be convenient?","category":"tone","why":"Strictly formal register"}]}
             Text: Dear Ms. Chen, thank you for your letter. We will send our response by Friday.
@@ -304,16 +346,57 @@ public enum PromptBuilder {
             {"corrected":"This initiative is a significant change and reflects our commitment to quality.","edits":[]}
             """
         }
-        var out: [(text: String, corrected: String)] = []
-        var pending: String?
-        for line in raw.split(separator: "\n").map({ $0.trimmingCharacters(in: .whitespaces) }) where !line.isEmpty {
-            if line.hasPrefix("Text: ") {
-                pending = String(line.dropFirst(6))
-            } else if let t = pending, let corrected = ((try? ResponseParser.parseJSON(line))?.corrected) {
-                out.append((t, corrected))
-                pending = nil
-            }
+    }
+
+    /// Brazilian Portuguese examples, so the model answers in Portuguese
+    /// instead of translating to match English examples.
+    static func portugueseFewShot(_ mode: CheckMode, _ tone: Tone) -> String {
+        switch (mode, tone) {
+        case (.correct, .informal):
+            return """
+            Text: oi, eles vai chegar mais tarde kkk. avisa o pessoal?
+            {"corrected":"oi, eles vão chegar mais tarde kkk. avisa o pessoal?","edits":[{"from":"vai","to":"vão","category":"grammar","why":"Concordância com 'eles'"}]}
+            Text: blz, te vejo às 3 👍
+            {"corrected":"blz, te vejo às 3 👍","edits":[]}
+            Text: fiquei mau com isso, mais amanha a gente resolve
+            {"corrected":"fiquei mal com isso, mas amanhã a gente resolve","edits":[{"from":"mau","to":"mal","category":"wordChoice","why":"'mal' é o oposto de 'bem'"},{"from":"mais","to":"mas","category":"wordChoice","why":"'mas' indica oposição"},{"from":"amanha","to":"amanhã","category":"spelling","why":"Falta o til"}]}
+            """
+        case (.correct, _):
+            return """
+            Text: Olá, Ana. Gostaria de avisar que os relatórios está pronto e vou envia-lo amanha.
+            {"corrected":"Olá, Ana. Gostaria de avisar que o relatório está pronto e vou enviá-lo amanhã.","edits":[{"from":"os relatórios","to":"o relatório","category":"grammar","why":"Concordância com 'está pronto'"},{"from":"envia-lo","to":"enviá-lo","category":"spelling","why":"Acento em 'enviá-lo'"},{"from":"amanha","to":"amanhã","category":"spelling","why":"Falta o til"}]}
+            Text: Agradeço a ajuda com a proposta.
+            {"corrected":"Agradeço a ajuda com a proposta.","edits":[]}
+            Text: Fazem dois anos que a gente trabalha juntos, a reunião é as 9h.
+            {"corrected":"Faz dois anos que a gente trabalha junto, a reunião é às 9h.","edits":[{"from":"Fazem","to":"Faz","category":"grammar","why":"'Fazer' indicando tempo é impessoal"},{"from":"juntos","to":"junto","category":"grammar","why":"Concordância com 'a gente'"},{"from":"as","to":"às","category":"punctuation","why":"Crase antes de horas"}]}
+            """
+        case (.rewrite, .informal):
+            return """
+            Text: Gostaria de informar que a reunião foi transferida para sexta-feira.
+            {"corrected":"Só avisando: a reunião mudou pra sexta.","edits":[]}
+            Text: blz, subi a correção 👍 pode rodar os testes de novo?
+            {"corrected":"blz, subi a correção 👍 pode rodar os testes de novo?","edits":[]}
+            Text: Estamos muito animados em alavancar nossa robusta plataforma para otimizar de forma integrada o seu fluxo de trabalho!
+            {"corrected":"Nossa ferramenta nova deve facilitar bastante o seu trabalho.","edits":[]}
+            """
+        case (.rewrite, .formal):
+            return """
+            Text: oi, manda os números o quanto antes, preciso pra call
+            {"corrected":"Olá, você poderia me enviar os números assim que possível? Preciso deles para a reunião.","edits":[]}
+            Text: Obrigado pela atualização. Vou revisar o rascunho amanhã.
+            {"corrected":"Obrigado pela atualização. Vou revisar o rascunho amanhã.","edits":[]}
+            Text: Neste momento, foi decidido pelo comitê que o lançamento seria adiado devido ao fato de que os testes não terminaram.
+            {"corrected":"O comitê decidiu adiar o lançamento porque os testes não terminaram.","edits":[]}
+            """
+        case (.rewrite, .strictFormal):
+            return """
+            Text: Oi, Tomás, valeu! Segunda não dá, pode ser terça?
+            {"corrected":"Prezado Tomás, agradeço a mensagem. Infelizmente, não poderemos comparecer na segunda-feira. Seria possível na terça-feira?","edits":[]}
+            Text: Prezada Sra. Costa, agradecemos a sua carta. Enviaremos a nossa resposta até sexta-feira.
+            {"corrected":"Prezada Sra. Costa, agradecemos a sua carta. Enviaremos a nossa resposta até sexta-feira.","edits":[]}
+            Text: só queria saber se o contrato já foi assinado, desculpa incomodar
+            {"corrected":"Gostaria de saber se o contrato já foi assinado.","edits":[]}
+            """
         }
-        return out
     }
 }

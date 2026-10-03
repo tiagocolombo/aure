@@ -65,7 +65,9 @@ import Testing
     @Test func replacementPlusInsertionIsOneHunk() {
         let h = DiffEngine.hunks(from: "when your ready", to: "when you are ready")
         #expect(h.count == 1)
-        #expect(h[0].original == "your ")
+        // Myers may align the shared space either side ("your " or "your"); toolchains differ.
+        #expect(h[0].original.trimmingCharacters(in: .whitespaces) == "your")
+        #expect(h[0].replacement.trimmingCharacters(in: .whitespaces) == "you are")
         #expect(DiffEngine.apply(h, to: "when your ready") == "when you are ready")
     }
 

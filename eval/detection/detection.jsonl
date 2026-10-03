@@ -1,0 +1,70 @@
+{"text": "Oi, pessoal! A reunião de amanhã foi transferida para sexta-feira à tarde.", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "Bom dia, Ana. Segue em anexo o relatório financeiro do terceiro trimestre.", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "Você pode me mandar os números até o fim do dia? Preciso deles para a apresentação.", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "Fiquei mal com isso, mas amanhã a gente resolve tudo com calma.", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "Eles vão chegar mais tarde, avisa o pessoal que o ônibus atrasou.", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "Prezado Sr. Oliveira, agradecemos o contato e retornaremos em breve.", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "Tive uma ideia para o voo de amanhã: podemos sair mais cedo do escritório.", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "O time de engenharia terminou a migração do banco de dados ontem à noite.", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "Obrigado pela ajuda com a proposta, ficou muito melhor do que a versão anterior.", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "Não consegui acessar o sistema hoje de manhã, alguém mais está com esse problema?", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "A equipe precisa revisar o contrato antes da assinatura na próxima semana.", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "Vamos almoçar juntos na quinta? Conheço um restaurante ótimo perto do metrô.", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "Por que você não me avisou antes? Eu teria reorganizado a agenda.", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "Parabéns pelo aniversário! Que seu ano seja cheio de conquistas e saúde.", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "O pedido número 4521 foi enviado pelos Correios e deve chegar em cinco dias úteis.", "expect": "pt_BR", "fallback": "en_US"}
+{"text": "vc viu o email q te mandei ontem? preciso de uma resposta hj", "expect": "pt_BR", "fallback": "en_US", "note": "internet abbreviations"}
+{"text": "Os relatórios está pronto e vou envia-lo amanha de manha.", "expect": "pt_BR", "fallback": "en_US", "note": "agreement errors, missing accents"}
+{"text": "nao sei se vou conseguir ir na festa, to muito cansado essa semana", "expect": "pt_BR", "fallback": "en_US", "note": "no accents"}
+{"text": "A reunião é as 9h na sala de sempre, nao se atrase.", "expect": "pt_BR", "fallback": "en_US", "note": "missing crase"}
+{"text": "kkkkk mano q isso, ce ta doido? bora sair hoje entao", "expect": "pt_BR", "fallback": "en_US", "note": "very informal"}
+{"text": "Fazem dois anos que a gente trabalha juntos nesse projeto.", "expect": "pt_BR", "fallback": "en_US", "note": "grammar error"}
+{"text": "Fiz o deploy da nova versão e o pipeline de CI passou sem erros.", "expect": "pt_BR", "fallback": "en_US", "note": "English loanwords"}
+{"text": "Mandei o link do Google Docs no Slack, dá uma olhada quando puder.", "expect": "pt_BR", "fallback": "en_US", "note": "English loanwords"}
+{"text": "O bug no checkout acontece só no Safari, já abri um ticket no Jira.", "expect": "pt_BR", "fallback": "en_US", "note": "English loanwords"}
+{"text": "I love the color of the theater downtown, it is my favorite place.", "expect": "en_US", "fallback": "en_GB"}
+{"text": "Please analyze the data and organize the files before the meeting.", "expect": "en_US", "fallback": "en_GB"}
+{"text": "We traveled to the center of town and canceled our dinner plans.", "expect": "en_US", "fallback": "en_GB"}
+{"text": "The defense team filed the license application with the program office.", "expect": "en_US", "fallback": "en_GB"}
+{"text": "Our neighbor painted the fence gray and it looks great.", "expect": "en_US", "fallback": "en_GB"}
+{"text": "The catalog lists every flavor we offer, including the new vanilla one.", "expect": "en_US", "fallback": "en_GB"}
+{"text": "I apologize for the delay; the check should arrive by Friday.", "expect": "en_US", "fallback": "en_GB"}
+{"text": "The organization will prioritize customer behavior research this year.", "expect": "en_US", "fallback": "en_GB"}
+{"text": "She practiced the dialog for hours before the rehearsal.", "expect": "en_US", "fallback": "en_GB"}
+{"text": "My favorite part of the program was the humor in the second act.", "expect": "en_US", "fallback": "en_GB"}
+{"text": "I love the colour of the theatre in the centre, it is my favourite place.", "expect": "en_GB", "fallback": "en_US"}
+{"text": "Please analyse the data and organise the files before the meeting.", "expect": "en_GB", "fallback": "en_US"}
+{"text": "We travelled to the centre of town and cancelled our dinner plans.", "expect": "en_GB", "fallback": "en_US"}
+{"text": "The defence team filed the licence application with the programme office.", "expect": "en_GB", "fallback": "en_US"}
+{"text": "Our neighbour painted the fence grey and it looks brilliant.", "expect": "en_GB", "fallback": "en_US"}
+{"text": "The catalogue lists every flavour we offer, including the new vanilla one.", "expect": "en_GB", "fallback": "en_US"}
+{"text": "I apologise for the delay; the cheque should arrive by Friday.", "expect": "en_GB", "fallback": "en_US"}
+{"text": "The organisation will prioritise customer behaviour research this year.", "expect": "en_GB", "fallback": "en_US"}
+{"text": "Whilst the colour scheme is fine, the programme needs more humour.", "expect": "en_GB", "fallback": "en_US"}
+{"text": "We realised the jewellery had been sent to the wrong centre.", "expect": "en_GB", "fallback": "en_US"}
+{"text": "I love the colour of the theatre, and I realize it is my favourite place.", "expect": "en_CA", "fallback": "en_US", "note": "-our/-re with -ize"}
+{"text": "Please organize the files; the neighbour will analyze the colour samples.", "expect": "en_CA", "fallback": "en_US", "note": "-our/-re with -ize"}
+{"text": "We travelled to the centre and apologized for the cheque being late.", "expect": "en_CA", "fallback": "en_US", "note": "-our/-re with -ize"}
+{"text": "The organization will prioritize behaviour research in the new centre.", "expect": "en_CA", "fallback": "en_US", "note": "-our/-re with -ize"}
+{"text": "Our favourite colours were recognized at the festival in the city centre.", "expect": "en_CA", "fallback": "en_US", "note": "-our/-re with -ize"}
+{"text": "Thanks for the notes. I fixed the chart on page three and moved the table.", "expect": "en_US", "fallback": "en_US", "note": "neutral English keeps preferred variant"}
+{"text": "Can you send the invoice by Friday? The accounting team needs it soon.", "expect": "en_US", "fallback": "en_US", "note": "neutral English keeps preferred variant"}
+{"text": "The meeting has moved to Thursday afternoon, please update your calendar.", "expect": "en_US", "fallback": "en_US", "note": "neutral English keeps preferred variant"}
+{"text": "Thanks for the notes. I fixed the chart on page three and moved the table.", "expect": "en_GB", "fallback": "en_GB", "note": "neutral English keeps preferred variant"}
+{"text": "Can you send the invoice by Friday? The accounting team needs it soon.", "expect": "en_GB", "fallback": "en_GB", "note": "neutral English keeps preferred variant"}
+{"text": "The meeting has moved to Thursday afternoon, please update your calendar.", "expect": "en_GB", "fallback": "en_GB", "note": "neutral English keeps preferred variant"}
+{"text": "Thanks for the notes. I fixed the chart on page three and moved the table.", "expect": "en_CA", "fallback": "en_CA", "note": "neutral English keeps preferred variant"}
+{"text": "Can you send the invoice by Friday? The accounting team needs it soon.", "expect": "en_CA", "fallback": "en_CA", "note": "neutral English keeps preferred variant"}
+{"text": "The meeting has moved to Thursday afternoon, please update your calendar.", "expect": "en_CA", "fallback": "en_CA", "note": "neutral English keeps preferred variant"}
+{"text": "ok", "expect": "fallback", "fallback": "pt_BR", "note": "too short to judge"}
+{"text": "thx!", "expect": "fallback", "fallback": "en_GB", "note": "too short to judge"}
+{"text": "valeu", "expect": "fallback", "fallback": "en_US", "note": "too short to judge"}
+{"text": "sim", "expect": "fallback", "fallback": "en_US", "note": "too short to judge"}
+{"text": "👍👍", "expect": "fallback", "fallback": "pt_BR", "note": "too short to judge"}
+{"text": "ok, thx", "expect": "fallback", "fallback": "pt_BR", "note": "too short to judge"}
+{"text": "12:30?", "expect": "fallback", "fallback": "en_GB", "note": "too short to judge"}
+{"text": "bom dia", "expect": "fallback", "fallback": "en_US", "note": "too short to judge"}
+{"text": "I realy love the color of the new logo, its my favorite so far.", "expect": "en_US", "fallback": "en_GB", "note": "typos count against every variant"}
+{"text": "I realy love the colour of the new logo, its my favourite so far.", "expect": "en_GB", "fallback": "en_US", "note": "typos count against every variant"}
+{"text": "O cliente escreveu \"thanks for the quick reply\" e pediu uma nova proposta até sexta.", "expect": "pt_BR", "fallback": "en_US", "note": "Portuguese with an English quote"}
+{"text": "We met João and Conceição at the café in São Paulo to discuss the colour palette.", "expect": "en_GB", "fallback": "en_US", "note": "English with Portuguese names"}

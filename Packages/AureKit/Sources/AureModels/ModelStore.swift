@@ -58,8 +58,10 @@ public enum ModelCatalog {
 
     /// Default model for this machine.
     /// Based on docs/MODEL_EVAL.md: accuracy first, as long as the Mac has room.
+    /// Qwen3.5 4B fixes far more Portuguese errors; on Intel it is much slower
+    /// (see `fit`), so Intel Macs keep Qwen3 4B. README → System requirements lists these thresholds.
     public static func recommendedID(isAppleSilicon: Bool, memoryGB: Double) -> String {
-        if memoryGB >= 12 { return "qwen3-4b" }
+        if memoryGB >= 12 { return isAppleSilicon ? "qwen3.5-4b" : "qwen3-4b" }
         if memoryGB >= 6 { return "qwen3-1.7b" }
         return "qwen3-0.6b"
     }

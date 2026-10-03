@@ -153,6 +153,13 @@ import Testing
         #expect(!r.hasIssues)
     }
 
+    @Test func britishSpellingIsNotFlagged() async throws {
+        let text = "We travelled to the theatre to analyse the programme."
+        let svc = CorrectionService(provider: FakeLLMProvider(corrected: text))
+        let r = try await svc.check(CheckRequest(text: text, tone: .formal, dialect: .enGB))
+        #expect(!r.hasIssues)
+    }
+
     @Test func cancellationPropagates() async {
         let fake = FakeLLMProvider { _, _ in
             try await Task.sleep(for: .seconds(5))

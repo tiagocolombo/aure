@@ -65,7 +65,8 @@ public final class AppState {
     }
 
     public var tone: Tone { didSet { defaults.set(tone.rawValue, forKey: Keys.tone); coordinator?.invalidateReview() } }
-    public var dialect: Dialect { didSet { defaults.set(dialect.rawValue, forKey: Keys.dialect); coordinator?.invalidateReview() } }
+    /// The language of the text being checked (the app itself stays in English).
+    public var dialect: DialectSetting { didSet { defaults.set(dialect.rawValue, forKey: Keys.dialect); coordinator?.invalidateReview() } }
     public var selectedModelID: String? { didSet { defaults.set(selectedModelID, forKey: Keys.model); coordinator?.invalidateReview() } }
     public var paused: Bool { didSet { defaults.set(paused, forKey: Keys.paused); coordinator?.invalidateReview() } }
     /// Change with `use(_ engine:)`, which also restarts the engine.
@@ -112,6 +113,8 @@ public final class AppState {
     public let correction = CorrectionService()
     public let updates = UpdateController()
     public var lastResult: CheckResult?
+    /// The dialect "Detect automatically" last found; also the guess for short text.
+    public private(set) var detectedDialect: Dialect?
     public var coordinator: CheckCoordinator?
     public var accessibilityTrusted = AccessibilityPermission.isTrusted
 
@@ -137,7 +140,7 @@ public final class AppState {
         writingSuggestionsEnabled = defaults.object(forKey: Keys.writingSuggestions) as? Bool ?? true
         catalog = ModelCatalog.load()
         tone = Tone(rawValue: defaults.string(forKey: Keys.tone) ?? "") ?? .formal
-        dialect = Dialect(rawValue: defaults.string(forKey: Keys.dialect) ?? "") ?? .enUS
+        dialect = DialectSetting(rawValue: defaults.string(forKey: Keys.dialect) ?? "") ?? .automatic
         selectedModelID = defaults.string(forKey: Keys.model)
         paused = defaults.bool(forKey: Keys.paused)
         ollamaModelName = defaults.string(forKey: Keys.ollamaModel)
@@ -254,7 +257,7 @@ public final class AppState {
             await correction.setMaxParallel(slots)
             engine = .ready(model.name)
             // Warm up so the first real check is fast.
-            _ = try? await correction.check(CheckRequest(text: "This are a warm up.", tone: .formal, dialect: dialect))
+            _ = try? await correction.check(CheckRequest(text: "This are a warm up.", tone: .formal, dialect: likelyDialect))
             await correction.clearCache()
         } catch {
             engine = .failed(error.localizedDescription)
@@ -291,7 +294,7 @@ public final class AppState {
             // Ollama loads the model on the first request: warm up before reporting ready,
             // so a model Ollama cannot run shows as failed instead of failing every check.
             do {
-                _ = try await correction.check(CheckRequest(text: "This are a warm up.", tone: .formal, dialect: dialect))
+                _ = try await correction.check(CheckRequest(text: "This are a warm up.", tone: .formal, dialect: likelyDialect))
             } catch let e as AureError {
                 // A poor answer is fine for a warm-up; an Ollama error is not.
                 if case .server = e { throw e }
@@ -369,8 +372,22 @@ public final class AppState {
 
     // MARK: Checking
 
+    /// The dialect to expect before seeing the text (warm-up, short text).
+    public var likelyDialect: Dialect {
+        dialect.fixed ?? detectedDialect ?? DialectDetector.systemDefault()
+    }
+
+    /// The dialect to check `text` in: the fixed setting, or detected from the text.
+    public func resolvedDialect(for text: String) -> Dialect {
+        if let fixed = dialect.fixed { return fixed }
+        let result = DialectDetector.detect(text, fallback: likelyDialect)
+        if result.detected { detectedDialect = result.dialect }
+        return result.dialect
+    }
+
     public func check(_ text: String, mode: CheckMode = .correct, tone: Tone? = nil) async throws -> CheckResult {
-        let r = try await correction.check(CheckRequest(text: text, tone: tone ?? self.tone, mode: mode, dialect: dialect))
+        let r = try await correction.check(CheckRequest(text: text, tone: tone ?? self.tone, mode: mode,
+                                                        dialect: resolvedDialect(for: text)))
         lastResult = r
         return r
     }
@@ -382,7 +399,8 @@ public final class AppState {
               text.utf16.count <= 1200 else { return nil }
         try Task.checkCancellation()
         let targetTone = tone ?? self.tone
-        let rewrite = try await correction.check(CheckRequest(text: text, tone: targetTone, mode: .rewrite, dialect: dialect))
+        let rewrite = try await correction.check(CheckRequest(text: text, tone: targetTone, mode: .rewrite,
+                                                              dialect: resolvedDialect(for: text)))
         try Task.checkCancellation()
         guard writingSuggestionsEnabled else { return nil }
         return WritingSuggestion(original: text, replacement: rewrite.corrected, tone: targetTone,

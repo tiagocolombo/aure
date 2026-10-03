@@ -42,7 +42,8 @@ Recorded with Qwen3 4B on an Apple Silicon Mac. Suggestions come from the model,
 ## What works today
 
 - Aure Pad: paste or type text, check grammar, request a rewrite, review a diff, accept or dismiss edits, and copy the result.
-- Informal, formal, and strict formal tone presets, with editable descriptions and US/Canadian English settings.
+- Informal, formal, and strict formal tone presets, with editable descriptions.
+- Writing in English (US, UK, or Canada) or Brazilian Portuguese. Aure's own interface stays in English. By default Aure detects the language of each text on your Mac: Apple's language recognizer tells English from Portuguese, and the system spell checker's US, UK, and Canadian dictionaries decide the English spelling. Short or unclear text keeps the last detected language. You can also pick one fixed language in Settings → General. Portuguese support is new and has been checked less than English. Qwen3.5 4B, the default on Apple Silicon, fixes far more Portuguese errors than Qwen3 4B in our tests, but sometimes edits correct Portuguese sentences ([results](docs/MODEL_EVAL.md)).
 - A menu bar app with pause controls, model status, and a suggestion bubble for accessible text fields in other apps.
 - Red bubbles indicate grammar corrections; yellow bubbles indicate optional model-generated writing alternatives when no corrections remain. The popup separates the two and lets you preview, apply, or dismiss suggestions. Automatic writing alternatives are currently limited to text up to 1,200 UTF-16 units.
 - A "Sounds AI-written" label when the model judges text to read like generic AI output. Rewrites prefer plain words, and em dashes are blocked during generation. The judgment is the model's, not a detector you can rely on.
@@ -50,15 +51,42 @@ Recorded with Qwen3 4B on an Apple Silicon Mac. Suggestions come from the model,
 - Local GGUF inference through [llama.cpp](https://github.com/ggml-org/llama.cpp), with Metal on Apple Silicon and CPU inference on Intel.
 - [Ollama](https://ollama.com/download) as an alternative engine. When Ollama is installed, **Settings → Models → Run models with** switches between the built-in llama.cpp engine (the default) and Ollama. With Ollama, Aure's tested models download through `ollama pull`, and every chat model Ollama already has can be used. Two features need llama.cpp: Ollama cannot block em dashes during generation, and older Ollama versions don't report the token probabilities behind confidence scores.
 - Model downloads with checksum verification, model switching, and local GGUF import. An imported model must be compatible with the runtime and prompting; importing a file does not guarantee useful corrections.
-- Models you already downloaded with LM Studio, Ollama, llama.cpp (`-hf` cache), the Hugging Face cache, Jan, or GPT4All appear under **Settings → Models → From other apps on this Mac** and are used in place, without copying. Aure's prompts are tuned and evaluated on the Qwen3 models in its catalog; other models may fix fewer errors or change correct text. Extra folders can be added with `AURE_EXTRA_MODEL_DIRS` (colon-separated).
+- Models you already downloaded with LM Studio, Ollama, llama.cpp (`-hf` cache), the Hugging Face cache, Jan, or GPT4All appear under **Settings → Models → From other apps on this Mac** and are used in place, without copying. Aure's prompts are tuned and evaluated on the Qwen models in its catalog; other models may fix fewer errors or change correct text. Extra folders can be added with `AURE_EXTRA_MODEL_DIRS` (colon-separated).
 
 Aure uses Accessibility for cross-app checking. Compatibility depends on what each app exposes, so Slack, browser editors, rich text fields, and different app versions can behave differently. If reading or replacement fails, use Aure Pad and copy the result manually. Google Docs' canvas-based editor is a particular limitation: treat any Docs integration as experimental and test only on a disposable document first. See the [Google Docs setup and verification guide](docs/GOOGLE_DOCS.md).
 
 A dedicated Chrome extension/native messaging bridge, a guided voice-profile assistant, and learning from accepted or dismissed edits are roadmap items, not shipped features.
 
+## System requirements
+
+- **macOS 14 Sonoma or newer.**
+- **A Mac with Apple Silicon is recommended.** The app is universal and also runs on Intel Macs, but there the model runs on the CPU only and checks are slower. On Apple Silicon the model runs on the GPU through Metal.
+- **Enough memory for the model.** The setup window recommends a model based on your Mac's memory (Apple menu → About This Mac):
+
+  | Memory | Recommended model |
+  | --- | --- |
+  | 12 GB or more | Qwen3.5 4B (Qwen3 4B on Intel Macs) |
+  | 6 GB or more | Qwen3 1.7B |
+  | Less than 6 GB | Qwen3 0.6B |
+
+  You can pick another model in **Settings → Models**. A model that needs more memory than your Mac has can't be downloaded, and large models are marked as slow on Intel Macs.
+- **Disk space for the model.** Download sizes, memory needs and licenses differ per model and are listed by their publishers:
+
+  | Model | Model card | File Aure downloads |
+  | --- | --- | --- |
+  | Qwen3.5 4B | [Qwen/Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B) | [bartowski/Qwen_Qwen3.5-4B-GGUF](https://huggingface.co/bartowski/Qwen_Qwen3.5-4B-GGUF) (Q4_K_M) |
+  | Qwen3 4B | [Qwen/Qwen3-4B](https://huggingface.co/Qwen/Qwen3-4B) | [Qwen/Qwen3-4B-GGUF](https://huggingface.co/Qwen/Qwen3-4B-GGUF) (Q4_K_M) |
+  | Qwen3 1.7B | [Qwen/Qwen3-1.7B](https://huggingface.co/Qwen/Qwen3-1.7B) | [bartowski/Qwen_Qwen3-1.7B-GGUF](https://huggingface.co/bartowski/Qwen_Qwen3-1.7B-GGUF) (Q4_K_M) |
+  | Qwen3 0.6B | [Qwen/Qwen3-0.6B](https://huggingface.co/Qwen/Qwen3-0.6B) | [bartowski/Qwen_Qwen3-0.6B-GGUF](https://huggingface.co/bartowski/Qwen_Qwen3-0.6B-GGUF) (Q4_K_M) |
+
+  A model you import or use from another app has its own requirements; check its model card.
+- **Internet access** only to download a model and to check for updates. Checking your writing works offline.
+- **Accessibility permission** to check text in other apps. Aure Pad works without it.
+- **Ollama (optional).** To run models with Ollama instead of the built-in engine, your Mac must meet [Ollama's system requirements](https://docs.ollama.com/macos#system-requirements).
+
 ## Install
 
-1. Download `Aure-<version>.dmg` from the [latest release](https://github.com/tiagocolombo/aure/releases/latest) and drag Aure into Applications. The app is universal (Apple Silicon and Intel) and needs macOS 14 or newer.
+1. Download `Aure-<version>.dmg` from the [latest release](https://github.com/tiagocolombo/aure/releases/latest) and drag Aure into Applications. The app is universal (Apple Silicon and Intel); see [System requirements](#system-requirements).
 2. Right-click Aure in Applications, choose **Open**, then **Open** again. Releases are signed with a self-signed certificate and are not yet notarized by Apple, so macOS asks this once.
 3. Pick a model in the setup window, and grant Accessibility when asked so Aure can check other apps.
 
@@ -73,7 +101,7 @@ You need:
 - Git and CMake. If you use Homebrew, `brew install cmake` installs CMake. CMake is not needed for an [Ollama-only build](#build-with-ollama-instead-of-llamacpp).
 - Internet access to fetch llama.cpp (not needed for the Ollama-only build) and download a model, plus disk space for build output and model weights.
 
-Apple Silicon is the preferred development target. The scripts also include an Intel CPU build path; its performance and app compatibility need separate testing. Model size, memory use, and latency vary by hardware and input length. Catalog downloads range from roughly 0.5 GB to 3 GB; inference needs additional memory.
+Apple Silicon is the preferred development target. The scripts also include an Intel CPU build path; its performance and app compatibility need separate testing. Latency varies by hardware and input length. To run the built app, the [System requirements](#system-requirements) apply; for llama.cpp's own build options, see [its build guide](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md).
 
 From the repository root:
 
@@ -106,7 +134,7 @@ open build/Aure.app
 
 Keep Ollama running. In onboarding or **Settings → Models**, download one of Aure's tested models, which Aure fetches with `ollama pull hf.co/<repo>:<quant>`, or pick a model you already pulled. Aure connects to `OLLAMA_HOST`, or `127.0.0.1:11434` by default. Only a server on this Mac is used: an `OLLAMA_HOST` on another machine is ignored, and Aure sends no text to a port that belongs to another user's program.
 
-Aure's prompts are tuned on the Qwen3 models in its catalog. Other Ollama models may fix fewer errors or change correct text. Remove models with `ollama rm <name>`.
+Aure's prompts are tuned on the Qwen models in its catalog. Other Ollama models may fix fewer errors or change correct text. Remove models with `ollama rm <name>`.
 
 ### Your first check
 
@@ -155,7 +183,7 @@ Offline inference does **not** make the app you are writing in offline. Google D
 
 Aure is a suggestion tool, not an authority on correctness. Models can miss errors, change meaning, or make unnecessary edits to correct text. Tone rewrites intentionally permit broader changes. A green status means no suggestions were surfaced, not that the text is error-free.
 
-Confidence-based filtering is experimental. Token probabilities are not calibrated probabilities that an edit is grammatically correct. Smaller models can be faster but less useful; larger models can still be wrong and may be slow on Intel. English is the current focus.
+Confidence-based filtering is experimental. Token probabilities are not calibrated probabilities that an edit is grammatically correct. Smaller models can be faster but less useful; larger models can still be wrong and may be slow on Intel. English has had the most testing.
 
 [Model evaluation notes](docs/MODEL_EVAL.md) record development experiments, not an independent benchmark or product accuracy guarantee. Different scripts, datasets, prompts, filters, and scoring definitions are not directly comparable. Do not interpret catalog percentages or a small golden set as general accuracy claims.
 

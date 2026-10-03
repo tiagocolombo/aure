@@ -21,6 +21,40 @@ import Testing
         #expect(us.system.contains("American English"))
         #expect(ca.system.contains("colour"))
         #expect(ca.system.contains("organize"))
+        let gb = PromptBuilder.build(CheckRequest(text: "x", tone: .formal, dialect: .enGB))
+        #expect(gb.system.contains("British English"))
+        #expect(gb.system.contains("colour"))
+        #expect(gb.system.hasPrefix("You are Aure, a precise English copy editor."))
+    }
+
+    @Test(arguments: Tone.allCases, [CheckMode.correct, .rewrite])
+    func portuguesePromptStaysInPortuguese(tone: Tone, mode: CheckMode) {
+        let p = PromptBuilder.build(CheckRequest(text: "Eles vai chegar amanha.", tone: tone, mode: mode, dialect: .ptBR))
+        #expect(p.system.hasPrefix("You are Aure, a precise Brazilian Portuguese copy editor."))
+        #expect(p.system.contains("never translate"))
+        #expect(!p.examples.isEmpty)
+        // Portuguese examples, so the model does not answer in English.
+        let english = Set(PromptBuilder.fewShot(mode, tone).map(\.text))
+        #expect(p.examples.allSatisfy { !english.contains($0.user.replacingOccurrences(of: "\n/no_think", with: "")) })
+    }
+
+    @Test func englishPromptListsEnglishConfusedWords() {
+        let en = PromptBuilder.build(CheckRequest(text: "x", tone: .formal))
+        let pt = PromptBuilder.build(CheckRequest(text: "x", tone: .formal, dialect: .ptBR))
+        #expect(en.system.contains("your/you're"))
+        #expect(!pt.system.contains("your/you're"))
+        #expect(pt.system.contains("mas/mais"))
+    }
+
+    @Test func dialectSettingRoundTrips() {
+        for setting in DialectSetting.allCases {
+            #expect(DialectSetting(rawValue: setting.rawValue) == setting)
+        }
+        #expect(DialectSetting(rawValue: "auto") == .automatic)
+        #expect(DialectSetting(rawValue: "en_CA") == .fixed(.enCA))
+        #expect(DialectSetting(rawValue: "fr_FR") == nil)
+        #expect(Dialect.english == [.enUS, .enGB, .enCA])
+        #expect(Dialect.ptBR.language == .portuguese)
     }
 
     @Test func styleContextIsIncluded() {

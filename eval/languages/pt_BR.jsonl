@@ -1,0 +1,71 @@
+{"text": "Olá, Ana. Os relatórios está pronto e vou enviá-lo amanhã.", "tone": "formal", "dialect": "pt_BR", "expect": ["Olá, Ana. O relatório está pronto e vou enviá-lo amanhã.", "Olá, Ana. Os relatórios estão prontos e vou enviá-los amanhã."]}
+{"text": "Agradeço a ajuda com a proposta.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "A reunião é as 9h na sala de sempre.", "tone": "formal", "dialect": "pt_BR", "expect": ["A reunião é às 9h na sala de sempre."]}
+{"text": "Fiquei mau com isso, mais amanhã a gente resolve.", "tone": "informal", "dialect": "pt_BR", "expect": ["Fiquei mal com isso, mas amanhã a gente resolve."]}
+{"text": "Eles vai chegar mais tarde, avisa o pessoal?", "tone": "informal", "dialect": "pt_BR", "expect": ["Eles vão chegar mais tarde, avisa o pessoal?"]}
+{"text": "Tive uma ideia para o voo de amanhã.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "Vou chegar as 10h amanhã.", "tone": "formal", "dialect": "pt_BR", "expect": ["Vou chegar às 10h amanhã."]}
+{"text": "Fui a farmácia comprar remédio.", "tone": "informal", "dialect": "pt_BR", "expect": ["Fui à farmácia comprar remédio."]}
+{"text": "Entreguei o documento a diretora ontem.", "tone": "formal", "dialect": "pt_BR", "expect": ["Entreguei o documento à diretora ontem."]}
+{"text": "Ela chegou atrasada a reunião.", "tone": "formal", "dialect": "pt_BR", "expect": ["Ela chegou atrasada à reunião."]}
+{"text": "Os alunos chegou cedo hoje.", "tone": "formal", "dialect": "pt_BR", "expect": ["Os alunos chegaram cedo hoje."]}
+{"text": "A gente vamos sair mais tarde.", "tone": "informal", "dialect": "pt_BR", "expect": ["A gente vai sair mais tarde."]}
+{"text": "Haviam muitas pessoas na fila.", "tone": "formal", "dialect": "pt_BR", "expect": ["Havia muitas pessoas na fila."]}
+{"text": "Fazem três meses que não vejo meus primos.", "tone": "informal", "dialect": "pt_BR", "expect": ["Faz três meses que não vejo meus primos."]}
+{"text": "É necessário que todos estejam presente.", "tone": "formal", "dialect": "pt_BR", "expect": ["É necessário que todos estejam presentes."]}
+{"text": "Obrigado a todos que participou do evento.", "tone": "formal", "dialect": "pt_BR", "expect": ["Obrigado a todos que participaram do evento."]}
+{"text": "O pessoal do financeiro pediram os números.", "tone": "formal", "dialect": "pt_BR", "expect": ["O pessoal do financeiro pediu os números."]}
+{"text": "Eles tem muitas ideias boas.", "tone": "formal", "dialect": "pt_BR", "expect": ["Eles têm muitas ideias boas."]}
+{"text": "Eles vem amanhã para a reunião.", "tone": "formal", "dialect": "pt_BR", "expect": ["Eles vêm amanhã para a reunião."]}
+{"text": "Ela não pode vir ontem por causa da chuva.", "tone": "formal", "dialect": "pt_BR", "expect": ["Ela não pôde vir ontem por causa da chuva."]}
+{"text": "Quero que você me ajuda com isso.", "tone": "informal", "dialect": "pt_BR", "expect": ["Quero que você me ajude com isso."]}
+{"text": "Quando você vim aqui, me avisa.", "tone": "informal", "dialect": "pt_BR", "expect": ["Quando você vier aqui, me avisa."]}
+{"text": "Se eu ver o Pedro amanhã, aviso você.", "tone": "formal", "dialect": "pt_BR", "expect": ["Se eu vir o Pedro amanhã, aviso você."]}
+{"text": "Seje bem-vindo ao time!", "tone": "informal", "dialect": "pt_BR", "expect": ["Seja bem-vindo ao time!"]}
+{"text": "Nós se encontramos ontem no shopping.", "tone": "informal", "dialect": "pt_BR", "expect": ["Nós nos encontramos ontem no shopping."]}
+{"text": "Acho que vai chover, mais vou sair mesmo assim.", "tone": "informal", "dialect": "pt_BR", "expect": ["Acho que vai chover, mas vou sair mesmo assim."]}
+{"text": "Ele se comportou mau na reunião.", "tone": "formal", "dialect": "pt_BR", "expect": ["Ele se comportou mal na reunião."]}
+{"text": "Ele não é um homem mal, só está cansado.", "tone": "formal", "dialect": "pt_BR", "expect": ["Ele não é um homem mau, só está cansado."]}
+{"text": "A dois anos trabalho nesta empresa.", "tone": "formal", "dialect": "pt_BR", "expect": ["Há dois anos trabalho nesta empresa."]}
+{"text": "Precisamos ver isso com calma, a muitos detalhes em aberto.", "tone": "formal", "dialect": "pt_BR", "expect": ["Precisamos ver isso com calma, há muitos detalhes em aberto."]}
+{"text": "Não sei porque ele saiu cedo.", "tone": "formal", "dialect": "pt_BR", "expect": ["Não sei por que ele saiu cedo."]}
+{"text": "Ninguém entendeu o por quê da decisão.", "tone": "formal", "dialect": "pt_BR", "expect": ["Ninguém entendeu o porquê da decisão."]}
+{"text": "Você sabe aonde fica a estação?", "tone": "formal", "dialect": "pt_BR", "expect": ["Você sabe onde fica a estação?"]}
+{"text": "Ela trás o almoço todos os dias.", "tone": "formal", "dialect": "pt_BR", "expect": ["Ela traz o almoço todos os dias."]}
+{"text": "Levei o computador para o concerto.", "tone": "formal", "dialect": "pt_BR", "expect": ["Levei o computador para o conserto."]}
+{"text": "Preciso de uma excessão para esse caso.", "tone": "formal", "dialect": "pt_BR", "expect": ["Preciso de uma exceção para esse caso."]}
+{"text": "O projeto foi entregue, apesar dos atrazos.", "tone": "formal", "dialect": "pt_BR", "expect": ["O projeto foi entregue, apesar dos atrasos."]}
+{"text": "Voce pode revisar o contrato hoje?", "tone": "formal", "dialect": "pt_BR", "expect": ["Você pode revisar o contrato hoje?"]}
+{"text": "O relatorio esta pronto para revisão.", "tone": "formal", "dialect": "pt_BR", "expect": ["O relatório está pronto para revisão."]}
+{"text": "Obrigado pela ajuda, foi muito util.", "tone": "formal", "dialect": "pt_BR", "expect": ["Obrigado pela ajuda, foi muito útil."]}
+{"text": "Vamos discutir isso na reuniao de amanha.", "tone": "formal", "dialect": "pt_BR", "expect": ["Vamos discutir isso na reunião de amanhã."]}
+{"text": "A idéia é lançar o produto em março.", "tone": "formal", "dialect": "pt_BR", "expect": ["A ideia é lançar o produto em março."]}
+{"text": "O vôo atrasou duas horas.", "tone": "formal", "dialect": "pt_BR", "expect": ["O voo atrasou duas horas."]}
+{"text": "Menas pessoas vieram hoje.", "tone": "formal", "dialect": "pt_BR", "expect": ["Menos pessoas vieram hoje."]}
+{"text": "Ela ficou meia cansada depois da viagem.", "tone": "formal", "dialect": "pt_BR", "expect": ["Ela ficou meio cansada depois da viagem."]}
+{"text": "Ela é mais melhor que eu nisso.", "tone": "informal", "dialect": "pt_BR", "expect": ["Ela é melhor que eu nisso.", "Ela é melhor do que eu nisso."]}
+{"text": "Segue anexo as planilhas do trimestre.", "tone": "formal", "dialect": "pt_BR", "expect": ["Seguem anexas as planilhas do trimestre.", "Seguem em anexo as planilhas do trimestre."]}
+{"text": "As planilhas estão anexo.", "tone": "formal", "dialect": "pt_BR", "expect": ["As planilhas estão anexas.", "As planilhas estão em anexo."]}
+{"text": "Ele disse que ia viajar mas, não foi.", "tone": "formal", "dialect": "pt_BR", "expect": ["Ele disse que ia viajar, mas não foi."]}
+{"text": "Bom dia! Segue em anexo o relatório de vendas de setembro.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "Por que você não veio ontem? Fiquei preocupado.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "Não sei por que ele saiu tão cedo.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "A reunião foi adiada para quinta-feira às 15h.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "Eles têm reunião às 9h e às 14h.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "Ele mora a duas quadras daqui.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "Fizemos a reunião a portas fechadas.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "Há muito tempo não vejo meus primos.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "Prezado Sr. Almeida, agradecemos o retorno e aguardamos a sua confirmação.", "tone": "strictFormal", "dialect": "pt_BR", "expect": null}
+{"text": "O pessoal do time aprovou a proposta.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "A ideia do projeto é reduzir o tempo de espera dos clientes.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "Fiz o deploy da nova versão e está tudo funcionando.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "Obrigada pelo feedback, vou ajustar o layout hoje.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "vc vem hoje? tô saindo agora", "tone": "informal", "dialect": "pt_BR", "expect": null}
+{"text": "blz, te mando o arquivo mais tarde", "tone": "informal", "dialect": "pt_BR", "expect": null}
+{"text": "Vou mandar o email pro cliente agora.", "tone": "informal", "dialect": "pt_BR", "expect": null}
+{"text": "A gente se vê amanhã no escritório.", "tone": "informal", "dialect": "pt_BR", "expect": null}
+{"text": "Daqui a pouco te ligo, tá?", "tone": "informal", "dialect": "pt_BR", "expect": null}
+{"text": "kkkkk muito bom, manda mais", "tone": "informal", "dialect": "pt_BR", "expect": null}
+{"text": "Esse bug só acontece no iPhone, né?", "tone": "informal", "dialect": "pt_BR", "expect": null}
+{"text": "Precisamos de mais tempo pra terminar.", "tone": "informal", "dialect": "pt_BR", "expect": null}
+{"text": "Eu e ela fomos ao cinema no sábado.", "tone": "informal", "dialect": "pt_BR", "expect": null}
