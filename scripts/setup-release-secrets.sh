@@ -25,8 +25,11 @@ trap 'rm -rf "$tmp"' EXIT
 if security find-identity -v -p codesigning | grep -q '"Aure Local"'; then
   cat <<EOF
 error: an "Aure Local" identity already exists, and its private key can only be
-exported from Keychain Access. Export it there (right-click > Export, .p12, with
-a password), then run:
+exported from Keychain Access. Export it there (My Certificates > right-click
+"Aure Local" > Export, .p12, with a password), check that the release workflow
+can import it (--fix writes a compatible copy if not):
+  scripts/check-signing-p12.sh --fix Aure.p12
+then upload the file it reports as OK:
   base64 -i Aure.p12 | gh secret set AURE_SIGNING_P12 --repo $repo --env $env_name
   gh secret set AURE_SIGNING_P12_PASSWORD --repo $repo --env $env_name
 and re-run this script with AURE_SKIP_SIGNING=1.
