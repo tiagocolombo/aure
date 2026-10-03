@@ -10,6 +10,7 @@ import Foundation
 //                       [--thresholds 0,0.5,0.7,0.9]     (one model call per case, scored at each threshold)
 //                       [--out results.jsonl]            (full per-case output, for eval/score_long.py)
 //                       [--parallel N]                   (paragraphs checked at once; server needs -np N)
+//   swift run aure-eval --detect eval/detection/detection.jsonl   (language detection, no model)
 //
 // Each JSONL line: {"text": "...", "tone": "formal", "dialect": "en_US",
 //                   "expect": ["acceptable output", ...] | null (= must stay unchanged),
@@ -35,6 +36,12 @@ func arg(_ name: String) -> String? {
     let a = CommandLine.arguments
     guard let i = a.firstIndex(of: name), i + 1 < a.count else { return nil }
     return a[i + 1]
+}
+
+// --detect FILE: language detection only, no model (see Detection.swift).
+if let path = arg("--detect") {
+    try runDetection(path)
+    exit(0)
 }
 
 let server = arg("--server") ?? "http://127.0.0.1:18080"

@@ -43,9 +43,17 @@ import Testing
         #expect(r.dialect.language == .english)
     }
 
+    @Test func usDictionaryIsListedAsPlainEnglish() {
+        #expect(DialectDetector.dictionary(for: .enUS, available: ["en", "en_GB"]) == "en")
+        #expect(DialectDetector.dictionary(for: .enUS, available: ["en_US", "en"]) == "en_US")
+        #expect(DialectDetector.dictionary(for: .enGB, available: ["en", "en_GB"]) == "en_GB")
+        #expect(DialectDetector.dictionary(for: .enCA, available: ["en", "en_GB"]) == nil)
+    }
+
     @Test @MainActor func spellingPicksTheVariant() {
-        let available = NSSpellChecker.shared.availableLanguages
-        guard available.contains("en_US"), available.contains("en_GB") else { return }
+        let available = Set(NSSpellChecker.shared.availableLanguages)
+        guard DialectDetector.dictionary(for: .enUS, available: available) != nil,
+              DialectDetector.dictionary(for: .enGB, available: available) != nil else { return }
         let us = DialectDetector.detect("I love the color of the theater downtown, it is my favorite place.",
                                         fallback: .enGB)
         #expect(us.dialect == .enUS)
@@ -60,13 +68,13 @@ import Testing
         var fallback: String
     }
 
-    /// eval/languages/detection.jsonl: language must always be right; the English
+    /// eval/detection/detection.jsonl: language must always be right; the English
     /// variant depends on the Mac's dictionaries, so it only needs to be mostly right.
     @Test @MainActor func detectionCorpus() throws {
         let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent().deletingLastPathComponent()
-            .appendingPathComponent("eval/languages/detection.jsonl")
+            .appendingPathComponent("eval/detection/detection.jsonl")
         let cases = try String(contentsOf: url, encoding: .utf8).split(separator: "\n").map {
             try JSONDecoder().decode(CorpusCase.self, from: Data($0.utf8))
         }

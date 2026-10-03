@@ -38,10 +38,10 @@ public enum DialectDetector {
         case .english:
             let checker = NSSpellChecker.shared
             let available = Set(checker.availableLanguages)
-            let candidates = Dialect.english.filter { available.contains($0.spellCheckerLanguage) }
             var rejected: [Dialect: Int] = [:]
-            for d in candidates {
-                rejected[d] = misspelledCount(in: sample, language: d.spellCheckerLanguage, checker: checker)
+            for d in Dialect.english {
+                guard let dictionary = dictionary(for: d, available: available) else { continue }
+                rejected[d] = misspelledCount(in: sample, language: dictionary, checker: checker)
             }
             let preferred = fallback.language == .english ? fallback : .enUS
             return Result(dialect: englishVariant(rejected: rejected, preferred: preferred), detected: true)
@@ -61,6 +61,14 @@ public enum DialectDetector {
         case .portuguese: return .portuguese
         default: return nil
         }
+    }
+
+    /// The installed dictionary for `dialect`, or nil when the Mac has none.
+    /// macOS lists its US English dictionary as "en", not "en_US".
+    static func dictionary(for dialect: Dialect, available: Set<String>) -> String? {
+        if available.contains(dialect.spellCheckerLanguage) { return dialect.spellCheckerLanguage }
+        if dialect == .enUS, available.contains("en") { return "en" }
+        return nil
     }
 
     /// The English variant whose dictionary rejected the fewest words. Ties
