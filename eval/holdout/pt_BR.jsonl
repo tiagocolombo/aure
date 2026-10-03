@@ -1,0 +1,24 @@
+{"text": "Vamos a praia no domingo?", "tone": "informal", "dialect": "pt_BR", "expect": ["Vamos à praia no domingo?"]}
+{"text": "O evento começa as 19h.", "tone": "formal", "dialect": "pt_BR", "expect": ["O evento começa às 19h."]}
+{"text": "Enviei a proposta a empresa ontem.", "tone": "formal", "dialect": "pt_BR", "expect": ["Enviei a proposta à empresa ontem."]}
+{"text": "Ele saiu a pouco.", "tone": "formal", "dialect": "pt_BR", "expect": ["Ele saiu há pouco."]}
+{"text": "As crianças brincou no parque.", "tone": "formal", "dialect": "pt_BR", "expect": ["As crianças brincaram no parque."]}
+{"text": "Houveram problemas no sistema.", "tone": "formal", "dialect": "pt_BR", "expect": ["Houve problemas no sistema."]}
+{"text": "Ontem ele não pode participar da chamada.", "tone": "formal", "dialect": "pt_BR", "expect": ["Ontem ele não pôde participar da chamada."]}
+{"text": "Elas tem razão.", "tone": "formal", "dialect": "pt_BR", "expect": ["Elas têm razão."]}
+{"text": "Eu não sei aonde deixei a chave.", "tone": "informal", "dialect": "pt_BR", "expect": ["Eu não sei onde deixei a chave."]}
+{"text": "Ela estava meia preocupada.", "tone": "informal", "dialect": "pt_BR", "expect": ["Ela estava meio preocupada."]}
+{"text": "Tinha menas gente do que esperávamos.", "tone": "informal", "dialect": "pt_BR", "expect": ["Tinha menos gente do que esperávamos."]}
+{"text": "Precisamos de mais tempo, mais o prazo não muda.", "tone": "formal", "dialect": "pt_BR", "expect": ["Precisamos de mais tempo, mas o prazo não muda."]}
+{"text": "Ele é um mal exemplo para o time.", "tone": "formal", "dialect": "pt_BR", "expect": ["Ele é um mau exemplo para o time."]}
+{"text": "Eu gostei do filme mas, o final foi fraco.", "tone": "informal", "dialect": "pt_BR", "expect": ["Eu gostei do filme, mas o final foi fraco."]}
+{"text": "A reuniao foi otima.", "tone": "formal", "dialect": "pt_BR", "expect": ["A reunião foi ótima."]}
+{"text": "Se você fazer isso, vai dar certo.", "tone": "informal", "dialect": "pt_BR", "expect": ["Se você fizer isso, vai dar certo."]}
+{"text": "Vou à praia no fim de semana.", "tone": "informal", "dialect": "pt_BR", "expect": null}
+{"text": "O escritório fica a cinco minutos da estação.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "Faz dois anos que moro aqui.", "tone": "informal", "dialect": "pt_BR", "expect": null}
+{"text": "Houve um problema no sistema ontem.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "Ela estava meio preocupada com o prazo.", "tone": "formal", "dialect": "pt_BR", "expect": null}
+{"text": "tmj, valeu pela ajuda!", "tone": "informal", "dialect": "pt_BR", "expect": null}
+{"text": "Fiz o merge da branch e rodei os testes.", "tone": "informal", "dialect": "pt_BR", "expect": null}
+{"text": "A apresentação começa às 10h em ponto.", "tone": "formal", "dialect": "pt_BR", "expect": null}

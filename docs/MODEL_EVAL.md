@@ -17,36 +17,79 @@ It covers Slack-style and email-style text, confused words (your/you're, its/it'
 whose/who's), agreement, pronoun case, word choice and Canadian spelling. This is still small; the goal
 is 150+ (issue #11).
 
-Language sets: `eval/languages/en_GB.jsonl` (British spelling that must stay unchanged) and
-`eval/languages/pt_BR.jsonl` (Brazilian Portuguese). They are kept apart from the golden set so the
-results below stay comparable; run them with `--set eval/languages`. No model results are recorded yet.
+Language sets, kept apart from the golden set so the results below stay comparable:
 
-### Language detection (2026-09-29, stand-in run, not on a Mac)
+- `eval/languages/en_GB.jsonl`: British spelling that must stay unchanged (4 cases).
+- `eval/languages/pt_BR.jsonl`: Brazilian Portuguese, 71 cases (47 with errors, 24 correct sentences
+  that must stay unchanged, including informal writing like "vc", "pra", "kkk" and loanwords like
+  "deploy"). Covers crase, há/a, impersonal haver/fazer, verb agreement, accents that mark tense
+  (pôde, têm, vêm), future subjunctive, mas/mais, mal/mau, onde/aonde, por que/porque and common
+  misspellings.
+- `eval/languages/pt_BR_rewrite.jsonl`: 10 Portuguese rewrites. A rewrite that changes language
+  (e.g. translates to English) counts as losing facts.
+- `eval/holdout/pt_BR.jsonl`: 24 more Portuguese cases (16 errors, 8 correct), written before any
+  prompt change and only scored at the end, to check that prompt changes were not tuned to the set above.
 
-`eval/languages/detection.jsonl`: 70 invented texts (Brazilian Portuguese with and without accents,
+Run them with `--set eval/languages` and `--set eval/holdout`.
+
+### Language sets (2026-10-02, Ollama, Apple M5 Pro)
+
+| model | pt_BR errors fixed | pt_BR clean kept | held-out errors fixed | held-out clean kept | pt_BR rewrites left alone when good | p50 |
+|---|---|---|---|---|---|---|
+| Qwen3 4B | 66–70% (31–33/47) | 100% (24/24) | 62% (10/16) | 88% (7/8) | 2/3 | 0.20 s |
+| **Qwen3.5 4B** | **85–87% (40–41/47)** | 83–92% (20–22/24) | **100% (16/16)** | 88% (7/8) | 1/3 | 0.22 s |
+| Qwen3 1.7B | 49% (23/47) | 100% (24/24) | | | | |
+| Qwen3 0.6B | 38% (18/47) | 88% (21/24) | | | | |
+
+Ranges are over repeated runs (temperature 0.2). Every model kept British spelling (en_GB 4/4), and
+no Portuguese rewrite switched language or lost a fact. On the English sets both 4B models scored the
+same as before (golden 28/31 fixed, 18/19 kept).
+
+Qwen3 4B misses most crase, há/a and tense-accent errors ("pode" for "pôde", "Fazem três meses"),
+even when a near-identical sentence is among the prompt's examples. Qwen3.5 4B fixes most of them, but
+it also makes style edits to correct sentences ("time" → "equipe", "a sua" → "sua") and once turned a
+singular into a plural. For Portuguese, the model matters far more than the prompt.
+
+Because of this, Qwen3.5 4B became the default on Apple Silicon Macs with 12 GB or more (Intel Macs keep
+Qwen3 4B, since Qwen3.5 4B is much slower on CPU). Checked through the bundled llama-server (b11200, the
+app's flags, Metal): golden 87% (27/31) fixed and 95% (18/19) kept, pt_BR 85% fixed and 85% kept,
+held-out 16/16 fixed and 7/8 kept, English rewrites 10/10 left alone when good; p50 0.4 s.
+
+Prompt change tried and dropped: a Portuguese checklist in the dialect note (crase, há/a, impersonal
+verbs, agreement, future subjunctive, invariable words, comma before "mas"), with example words that
+do not appear in either test set. On Qwen3 4B it scored 32–33/47 and 23/24 against the original
+prompt's 31–33/47 and 24/24, and 10/16 on the held-out set either way; on Qwen3.5 4B it did not help
+either. The original, shorter prompt stays.
+
+### Language detection (2026-10-02, Apple M5 Pro, macOS 26.6)
+
+`eval/detection/detection.jsonl`: 70 invented texts (Brazilian Portuguese with and without accents,
 slang and English loanwords; US, UK and Canadian English; neutral English that must keep the preferred
-variant; text too short to judge). On a Mac, `DialectDetectorTests.detectionCorpus` runs the real
-detector over it.
+variant; text too short to judge). It runs the real `DialectDetector` (Apple's language recognizer and
+the system spell checker, no model):
 
-Without a Mac, `eval/detect_proxy.mjs` runs the same decision logic with open-source stand-ins: franc
-for Apple's language recognizer and Hunspell dictionaries for the system spell checker.
+```
+swift run -c release --package-path Packages/AureKit aure-eval --detect eval/detection/detection.jsonl
+```
 
-| group | top language guess | with 0.6 cut on franc scores |
-|---|---|---|
-| pt_BR | 25/25 | 22/25 |
-| en_US | 11/11 | 8/11 |
-| en_GB | 12/12 | 8/12 |
-| en_CA | 5/5 | 3/5 |
-| neutral English keeps preferred variant | 9/9 | 9/9 |
-| short text keeps fallback | 8/8 | 8/8 |
-| **total** | **70/70** | 55/70 |
+`DialectDetectorTests.detectionCorpus` runs the same file in `scripts/test.sh`.
 
-About 0.2 ms per text. Every miss in the second column came from the language step falling back, not
-from the spelling vote: franc's scores are distances, not probabilities, so the 0.6 cut is
-much stricter for franc than for Apple's recognizer. Its results only show how much depends on that
-threshold; check it with the Mac test. In Hunspell, the UK dictionary rejects -ize ("organize"), which
-separates UK from Canadian text. If Apple's UK dictionary accepts -ize, UK and Canadian text that differ
-only there tie, and the preferred variant wins.
+| group | right |
+|---|---|
+| pt_BR | 25/25 |
+| en_US | 10/11 |
+| en_GB | 11/12 |
+| en_CA | 4/5 |
+| neutral English keeps preferred variant | 9/9 |
+| short text keeps fallback | 8/8 |
+| **total** | **67/70** |
+
+The language (English or Portuguese) was right in 62/62 texts; about 1.2 ms per text. macOS lists its
+US dictionary as `en`, not `en_US`; before that was handled the US variant was never considered and only
+23/37 English variants were right. Apple's UK dictionary rejects -ize ("organize"), which separates UK
+from Canadian text. The three misses are words every candidate dictionary accepts, so the preferred
+variant wins: Apple's US dictionary accepts "centre", "travelled", "cancelled" and "cheque", and the UK
+dictionary accepts "practiced" and "dialog".
 
 "Errors fixed" means an exact match with an acceptable answer (after ignoring a trailing period and
 first-letter case). Hardware: Intel i7-8850H, 16 GB, CPU only (no GPU). Apple Silicon is several

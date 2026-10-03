@@ -149,6 +149,9 @@ for (file, c) in cases {
             var missing = (c.keep ?? []).filter { !s.replacement.localizedCaseInsensitiveContains($0) }
             // A template placeholder ("Dear [Name]") is invented content, never acceptable.
             if s.replacement.contains("[") && !c.text.contains("[") { missing.append("(added a [placeholder])") }
+            // A rewrite must stay in the text's language (e.g. never translate Portuguese to English).
+            let language = DialectDetector.detect(s.replacement, fallback: req.dialect)
+            if language.detected, language.dialect.language != req.dialect.language { missing.append("(changed language)") }
             if missing.isEmpty { rw.factsKept += 1 } else { mark = "✘" }
             rw.lengthRatios.append(Double(words(s.replacement)) / Double(max(1, words(c.text))))
             print("\(mark) [\(req.tone.rawValue)/\(c.kind ?? "improve")] \(c.text)\n    → \(s.replacement)"

@@ -1,0 +1,10 @@
+{"mode": "rewrite", "tone": "formal", "kind": "improve", "keep": ["relatório", "sexta"], "dialect": "pt_BR", "text": "Venho por meio deste e-mail informar que, neste presente momento, o relatório não estará pronto até a sexta-feira."}
+{"mode": "rewrite", "tone": "formal", "kind": "improve", "keep": ["orçamento"], "dialect": "pt_BR", "text": "Foi decidido pela equipe que o orçamento seria revisado por nós novamente na próxima semana."}
+{"mode": "rewrite", "tone": "formal", "kind": "improve", "keep": ["Maria", "contrato"], "dialect": "pt_BR", "text": "Maria, só queria dar um alô sobre o contrato, porque estava pensando se você por acaso já teve a chance de dar uma olhada nele."}
+{"mode": "rewrite", "tone": "formal", "kind": "improve", "keep": ["quarta", "10h"], "dialect": "pt_BR", "text": "A reunião que tínhamos planejado realizar na quarta-feira às 10h é algo que vamos precisar mover para outro horário."}
+{"mode": "rewrite", "tone": "informal", "kind": "improve", "keep": ["quinta", "13h"], "dialect": "pt_BR", "text": "Gostaria de informar a todos que o almoço de confraternização foi transferido para quinta-feira às 13h."}
+{"mode": "rewrite", "tone": "informal", "kind": "improve", "keep": ["sábado", "servidor"], "dialect": "pt_BR", "text": "Prezados, comunico que o servidor ficará indisponível no sábado para manutenção programada."}
+{"mode": "rewrite", "tone": "strictFormal", "kind": "improve", "keep": ["proposta", "amanhã"], "dialect": "pt_BR", "text": "oi, dá pra mandar a proposta até amanhã? valeu"}
+{"mode": "rewrite", "tone": "formal", "kind": "good", "keep": [], "dialect": "pt_BR", "text": "O relatório de vendas está pronto. Envio a versão final até sexta-feira."}
+{"mode": "rewrite", "tone": "informal", "kind": "good", "keep": [], "dialect": "pt_BR", "text": "valeu! te vejo amanhã às 9h"}
+{"mode": "rewrite", "tone": "strictFormal", "kind": "good", "keep": [], "dialect": "pt_BR", "text": "Prezada Sra. Lima, agradecemos o contato. Responderemos até o dia 15."}
