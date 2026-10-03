@@ -99,7 +99,7 @@ jobs:
             # Names only: what the .p12 held, to tell a missing key from a wrong certificate.
             echo "Code-signing identities imported:"; security find-identity -p codesigning "$kc"
             echo "Certificates imported:"; security find-certificate -a "$kc" | grep '"labl"' || echo "  none"
-            echo "::error::No 'Aure Local' identity in AURE_SIGNING_P12. Check the file with scripts/check-signing-p12.sh before uploading it."
+            echo "::error::No 'Aure Local' identity in AURE_SIGNING_P12. A .p12 with no certificate above is a key-only export: export the certificate row from My Certificates. Check the file with scripts/check-signing-p12.sh before uploading it."
             exit 1
           fi
           echo "AURE_SIGN_IDENTITY=$hash" >> "$GITHUB_ENV"

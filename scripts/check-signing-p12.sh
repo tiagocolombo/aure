@@ -31,7 +31,9 @@ check() {
   security create-keychain -p "$kc_pass" "$kc"
   security unlock-keychain -p "$kc_pass" "$kc"
   echo "==> security import $(basename "$file")"
+  imported=0
   security import "$file" -k "$kc" -P "$AURE_P12_PASSWORD" -T /usr/bin/codesign || return 1
+  imported=1
   echo "==> code-signing identities in it:"
   security find-identity -p codesigning "$kc" | sed -n 's/^ *[0-9]*) //p'
   security find-identity -p codesigning "$kc" | grep -q '"Aure Local"'
@@ -44,7 +46,15 @@ if check "$p12"; then
   exit 0
 fi
 echo "FAIL: no 'Aure Local' code-signing identity after importing $p12."
-[ "$fix" = 1 ] || { echo "Re-run with --fix to write a compatible copy."; exit 1; }
+# A key-only export imports silently and holds no certificate, so no identity:
+# Keychain Access exported the key row instead of the certificate.
+if [ "$imported" = 1 ] && ! security find-certificate -a "$kc" 2>/dev/null | grep -q '"labl"'; then
+  echo "The file holds a private key but no certificate. In Keychain Access, open login >"
+  echo "My Certificates, right-click the 'Aure Local' certificate row (not the key row under"
+  echo "it) and export that as .p12."
+  exit 1
+fi
+[ "$fix" = 1 ] || { echo "Check the password; if it is right, re-run with --fix to write a compatible copy."; exit 1; }
 
 out="$(dirname "$p12")/Aure-compatible.p12"
 # Reading a modern .p12 needs OpenSSL 3 (macOS's /usr/bin/openssl is LibreSSL);
