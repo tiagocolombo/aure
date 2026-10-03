@@ -14,12 +14,22 @@ OUT = ROOT / "Packages/AureKit/Sources/AureModels/Resources/models.json"
 # Ordered best-first. Accuracy numbers come from docs/MODEL_EVAL.md.
 MODELS = [
     {
+        "id": "qwen3.5-4b",
+        "name": "Qwen3.5 4B",
+        "repo": "bartowski/Qwen_Qwen3.5-4B-GGUF",
+        "file": "Qwen_Qwen3.5-4B-Q4_K_M.gguf",
+        "family": "qwen3",
+        "summary": "Most accurate: fixed 87% of English and 85% of Portuguese test errors. Best on Apple Silicon.",
+        "minRAMGB": 8,
+        "license": "Apache-2.0",
+    },
+    {
         "id": "qwen3-4b",
         "name": "Qwen3 4B",
         "repo": "Qwen/Qwen3-4B-GGUF",
         "file": "Qwen3-4B-Q4_K_M.gguf",
         "family": "qwen3",
-        "summary": "Most accurate: fixed 90% of test errors. About 1–2 s per check on Intel, faster on Apple Silicon.",
+        "summary": "Fixed 90% of English test errors but only 66% of Portuguese ones. Faster on Intel Macs.",
         "minRAMGB": 8,
         "license": "Apache-2.0",
     },
@@ -31,16 +41,6 @@ MODELS = [
         "family": "qwen3",
         "summary": "Faster and smaller: fixed 84% of test errors. Good for 8 GB Macs.",
         "minRAMGB": 4,
-        "license": "Apache-2.0",
-    },
-    {
-        "id": "qwen3.5-4b",
-        "name": "Qwen3.5 4B",
-        "repo": "bartowski/Qwen_Qwen3.5-4B-GGUF",
-        "file": "Qwen_Qwen3.5-4B-Q4_K_M.gguf",
-        "family": "qwen3",
-        "summary": "Newer model, similar accuracy to Qwen3 4B (87%) but slower.",
-        "minRAMGB": 8,
         "license": "Apache-2.0",
     },
     {
