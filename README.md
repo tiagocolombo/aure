@@ -165,7 +165,7 @@ AURE_ENGINE=ollama scripts/make-dmg.sh
 
 The output is `dist/Aure-<version>.dmg`. These are local development packages, not notarized releases. macOS may block an unnotarized downloaded build; only approve software you built or trust. A locally generated DMG is not evidence of testing on another Mac.
 
-You don't need Nix or direnv. The maintainer's optional Nix setup depends on a private development-shell repository, so public contributors should use the scripts above rather than `nix develop` or the maintainer's `dev` CLI.
+You don't need Nix or direnv. The maintainer's optional Nix setup depends on a private development-shell repository, so public contributors should use the scripts above rather than `nix develop` or the maintainer's `rig` CLI.
 
 ## Privacy and offline use
 

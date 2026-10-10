@@ -3,7 +3,7 @@
 How to reproduce:
 
 ```
-dev llama                                   # build llama-server once
+rig llama                                   # build llama-server once
 eval/run-models.sh ~/Library/Application\ Support/Aure/Models/*.gguf
 # A model served by Ollama instead of llama-server:
 swift run --package-path Packages/AureKit aure-eval --ollama qwen3:4b --set eval/golden
