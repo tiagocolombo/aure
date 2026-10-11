@@ -1,6 +1,6 @@
 # Everything this project needs, in one file.
 #   flake.nix reads it (builtins.fromTOML) to build the shell
-#   the `dev` CLI reads it to know the verbs
+#   the `rig` CLI reads it to know the verbs
 #
 # Aure is a native macOS app. Swift comes from the system (Xcode Command Line
 # Tools or Xcode 16+), not from Nix; Nix only provides the supporting tools.

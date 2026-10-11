@@ -1,0 +1,24 @@
+# Hallmark settings for this repository. Every key is optional; the
+# values below are the defaults unless `hall init` detected something.
+# `hall schema config` describes every key.
+
+base     = "main"
+worktree = "git worktree add ../{repo}-{id} -b {branch}"
+branch   = "hm/{id}-{slug}"
+ship     = "git push -u origin {branch} && gh pr create --base {base} --head {branch} --title {title} --body-file {body_file}"
+gates = [
+  "nix develop --command scripts/lint.sh",
+  "nix develop --command scripts/test.sh",
+]
+max_rejects = 3
+rules = ["CLAUDE.md", "AGENTS.md"]
+
+[capture]
+mode = "gate"   # gate: edits need an item · ask: Claude asks you · off
+
+[budget]           # no caps unless you set them
+review_model = "opus"
+fix_model    = "sonnet"
+intake_model = "haiku"
+# daily    = "4M"
+# per_item = "800k"
