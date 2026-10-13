@@ -46,10 +46,12 @@ struct IssueRow: View {
     let issue: Issue
     var onAccept: (() -> Void)?
     var onDismiss: (() -> Void)?
+    /// Overrides the category color (Pad: red for fixes, yellow for suggestions).
+    var tint: Color?
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Circle().fill(color).frame(width: 8, height: 8).padding(.top, 5)
+            Circle().fill(tint ?? color).frame(width: 8, height: 8).padding(.top, 5)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
                     if !issue.original.isEmpty {

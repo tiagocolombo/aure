@@ -41,7 +41,7 @@ Recorded with Qwen3 4B on an Apple Silicon Mac. Suggestions come from the model,
 
 ## What works today
 
-- Aure Pad: paste or type text, check grammar, request a rewrite, review a diff, accept or dismiss edits, and copy the result.
+- Aure Pad: paste or type text, check grammar, request a rewrite, accept or dismiss edits, and copy the result. Corrections are underlined with red dots and optional writing alternatives with yellow dots; rest the mouse on an underline to see the recommendation and accept or dismiss it there.
 - Informal, formal, and strict formal tone presets, with editable descriptions.
 - Writing in English (US, UK, or Canada) or Brazilian Portuguese. Aure's own interface stays in English. By default Aure detects the language of each text on your Mac: Apple's language recognizer tells English from Portuguese, and the system spell checker's US, UK, and Canadian dictionaries decide the English spelling. Short or unclear text keeps the last detected language. You can also pick one fixed language in Settings → General. Portuguese support is new and has been checked less than English. Qwen3.5 4B, the default on Apple Silicon, fixes far more Portuguese errors than Qwen3 4B in our tests, but sometimes edits correct Portuguese sentences ([results](docs/MODEL_EVAL.md)).
 - A menu bar app with pause controls, model status, and a suggestion bubble for accessible text fields in other apps.
@@ -140,7 +140,7 @@ Aure's prompts are tuned on the Qwen models in its catalog. Other Ollama models 
 
 1. Choose a model in onboarding or **Settings → Models**, download it, and wait for the engine to become ready.
 2. Open Aure Pad and try a short, disposable example such as `She go to school every day.`
-3. Run a grammar check, review the proposed diff, and accept or dismiss the edits. Model output can vary; this is a walkthrough, not a guaranteed correction.
+3. Run a grammar check, rest the mouse on each underlined word to review the proposed change, and accept or dismiss it. Model output can vary; this is a walkthrough, not a guaranteed correction.
 4. To check other apps, grant Aure permission in **System Settings → Privacy & Security → Accessibility**, then focus a supported text field. If reading or replacement fails, return to Pad and copy the result manually.
 
 ### Signing and local packaging
